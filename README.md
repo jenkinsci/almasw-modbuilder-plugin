@@ -1,2 +1,2 @@
-# almasw-plugin
-An ALMA Software Jenkins plugin builder
+# jenkins-acs-plugin
+A ACS Module builder Jenkins Plugin

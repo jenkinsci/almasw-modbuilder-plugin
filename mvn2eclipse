@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+
+_eclipse_workspace=~/workspace1
+
+mvn -DdownloadSources=true -DdownloadJavadocs=true -DoutputDirectory=target/eclipse-classes -Declipse.workspace=$_eclipse_workspace eclipse:eclipse eclipse:add-maven-repo
