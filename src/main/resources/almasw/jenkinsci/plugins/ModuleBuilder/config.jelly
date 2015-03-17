@@ -1,41 +1,37 @@
 <?jelly escape-by-default='true'?>
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form">
-  
-  <!--
-    This jelly script is used for per-project configuration.
-    See global.jelly for a general discussion about jelly script.
-  -->
 
-  <!--
-    Creates a text field that shows the value of the "name" property.
-    When submitted, it will be passed to the corresponding constructor parameter.
-    
-    properties:
-		private final String moduleName;
-		private final boolean makeVerbose;
-		private final String makeJobs;
-		private final boolean makeNoStatic;
-		private final boolean makeNoIfr;
-  -->
-  
-  <f:entry title="Module Name" field="moduleName">
+<div>
+
+  <f:entry title="Module name" field="module">
     <f:textbox />
   </f:entry>
   
-  <f:entry title="Make verbose" field="makeVerbose">
-    <f:checkbox />
-  </f:entry>
-  
-  <f:entry title="Make static" field="makeNoStatic">
-    <f:checkbox />
-  </f:entry>
-  
-  <f:entry title="Make IFR check" field="makeNoIfr">
-    <f:checkbox />
-  </f:entry>
-  
-    <f:entry title="Make jobs" field="makeJobs">
+  <f:entry title="Parallel jobs" field="jobs">
     <f:textbox />
   </f:entry>
+  
+  <f:entry title="Extra verbose" field="verbose">
+    <f:checkbox />
+  </f:entry>
+  
+  <f:entry title="Make no static" field="noStatic">
+    <f:checkbox />
+  </f:entry>
+  
+  <f:entry title="Make no IFR check" field="noIfr">
+    <f:checkbox />
+  </f:entry>
+  
+  <f:entry title="Module Dependencies" field="dependencies" >
+    <f:repeatableProperty field="dependencies"/>
+    <!-- minimum="1" noAddButton="true" -->
+  </f:entry>
+  
+  <f:entry title="">
+  	<f:advanced />
+  </f:entry>
+
+</div>
   
 </j:jelly>

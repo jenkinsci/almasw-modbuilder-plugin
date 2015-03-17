@@ -1,6 +1,8 @@
 package almasw.jenkinsci.plugins;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 import javax.servlet.ServletException;
 
@@ -9,6 +11,7 @@ import net.sf.json.JSONObject;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
+import org.kohsuke.stapler.export.Exported;
 
 import hudson.Extension;
 import hudson.Launcher;
@@ -23,29 +26,82 @@ import hudson.util.FormValidation;
 
 public class ModuleBuilder extends Builder {
 	
-	private final String moduleName;
-	private final boolean makeVerbose;
-	private final String makeJobs;
-	private final boolean makeNoStatic;
-	private final boolean makeNoIfrCheck;
-
-    // Fields in config.jelly must match the parameter names in the "DataBoundConstructor"
+	private String module;
+	private boolean verbose;
+	private String jobs;
+	private boolean noStatic;
+	private boolean noIfr;
+	
+	private List<ModuleDependencies> dependencies = new ArrayList<ModuleDependencies>();
+	
+	// "DataBoundConstructor"
 	@DataBoundConstructor
-	public ModuleBuilder(String moduleName, boolean makeVerbose,
-			String makeJobs, boolean makeNoStatic, boolean makeNoIfrCheck) {
+	public ModuleBuilder(String module, boolean verbose,
+			String jobs, boolean noStatic, boolean noIfr, List<ModuleDependencies> dependencies) {
 
-		this.moduleName = moduleName;
-		this.makeVerbose = makeVerbose;
-		this.makeJobs = makeJobs;
-		this.makeNoStatic = makeNoStatic;
-		this.makeNoIfrCheck = makeNoIfrCheck;
+		this.module = module;
+		this.verbose = verbose;
+		this.jobs = jobs;
+		this.noStatic = noStatic;
+		this.noIfr = noIfr;
+		this.dependencies = dependencies;
 	}
 
-    /**
-     * We'll use this from the <tt>config.jelly</tt>.
-     */
 
-    
+	@Exported
+	public String getModule() {
+		return module;
+	}
+
+	
+	public void setModule(String module) {
+		this.module = module;
+	}
+
+	@Exported
+	public boolean getVerbose() {
+		return verbose;
+	}
+
+	public void setVerbose(boolean verbose) {
+		this.verbose = verbose;
+	}
+
+	@Exported
+	public String getJobs() {
+		return jobs;
+	}
+
+	public void setJobs(String jobs) {
+		this.jobs = jobs;
+	}
+
+	@Exported
+	public boolean getNoStatic() {
+		return noStatic;
+	}
+
+	public void setNoStatic(boolean noStatic) {
+		this.noStatic = noStatic;
+	}
+
+	@Exported
+	public boolean getNoIfr() {
+		return noIfr;
+	}
+
+	public void setNoIfr(boolean noIfr) {
+		this.noIfr = noIfr;
+	}
+
+	@Exported
+	public List<ModuleDependencies> getDependencies() {
+		return dependencies;
+	}
+
+	public void setDependencies(List<ModuleDependencies> dependencies) {
+		this.dependencies = dependencies;
+	}
 
 	@Override
     public boolean perform(AbstractBuild build, Launcher launcher, BuildListener listener) {
@@ -60,27 +116,7 @@ public class ModuleBuilder extends Builder {
 		
         return true;
     }
-
-    public String getModuleName() {
-		return moduleName;
-	}
-
-	public boolean getMakeVerbose() {
-		return makeVerbose;
-	}
-
-	public String getMakeJobs() {
-		return makeJobs;
-	}
-
-	public boolean getMakeNoStatic() {
-		return makeNoStatic;
-	}
-
-	public boolean getMakeNoIfr() {
-		return makeNoStatic;
-	}
-
+	
 	// Overridden for better type safety.
     // If your plugin doesn't really define any property on Descriptor,
     // you don't have to do this.

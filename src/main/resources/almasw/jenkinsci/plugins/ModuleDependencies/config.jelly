@@ -1,0 +1,26 @@
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form">
+    
+  <f:entry title="Job" field="project">
+    <f:textbox />
+  </f:entry>
+  
+  <f:entry title="Completed status" field="build">
+    <select name="svn.workspaceFormat">
+       <f:option value="lastSuccessfulBuild" selected="">lastSuccessfulBuild</f:option>
+       <f:option value="lastBuild" selected="">lastBuild</f:option>
+       <f:option value="lastStableBuild" selected="">lastStableBuild</f:option>
+       <f:option value="lastFailedBuild" selected="">lastFailedBuild</f:option>
+       <f:option value="lastUnstableBuild" selected="">lastUnstableBuild</f:option>
+       <f:option value="lastUnsuccessfulBuild" selected="">lastUnsuccessfulBuild</f:option>
+       <f:option value="lastCompletedBuild" selected="">lastUnsuccessfulBuild</f:option>
+    </select>
+  </f:entry>
+  
+  <f:entry title="Strategy" field="strategy">
+    <f:textbox />
+  </f:entry>
+  
+  <f:entry title=""> <div align="right"> <f:repeatableDeleteButton /> </div> </f:entry>
+  
+</j:jelly>
