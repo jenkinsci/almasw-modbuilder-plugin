@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
-_eclipse_workspace=~/workspace1
+_eclipse_workspace=$1
+
+[[ -z $_eclipse_workspace ]] && echo "$(basename $0) workspace"
+[[ ! -d $_eclipse_workspace ]] && echo "$_eclipse_workspace not exits"
 
 mvn -DdownloadSources=true -DdownloadJavadocs=true -DoutputDirectory=target/eclipse-classes -Declipse.workspace=$_eclipse_workspace eclipse:eclipse eclipse:add-maven-repo

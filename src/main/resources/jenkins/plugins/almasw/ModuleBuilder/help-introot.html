@@ -1,0 +1,7 @@
+<div>
+    The introot name, is generated relative to the <b>WORKSPACE</b> Jenkins environment variable.
+    <br/><br/> The field accepts any environment variables, e.g: <a href="https://wiki.jenkins-ci.org/display/JENKINS/Building+a+software+project#Buildingasoftwareproject-JenkinsSetEnvironmentVariables" target="_blank">Jenkins</a> 
+    or injected ones.
+    <br/><br/> By default the introot will be configured as: INTROOT/${BUILD_NUMBER}/${JOB_NAME} and a symlink at ${WORKSPACE} level will be created as INTROOT-${JOB_NAME} pointing to the latest successful build job introot, 
+    where $WORKSPACE, $BUILD_NUMBER and ${JOB_NAME} are Jenkins environment variables.
+</div>

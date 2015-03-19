@@ -1,8 +1,12 @@
+<?xml version="1.0"?>
 <?jelly escape-by-default='true'?>
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form">
   <f:section title="ALMA Software Module Builder">
-    <f:entry title="Enable CCACHE" field="useCcache">
-    	<f:checkbox />
+    <f:entry title="CCACHE install directory" field="ccacheInstall">
+      <f:textbox/>
+    </f:entry>
+    <f:entry title="ACS install directory" field="acsInstall">
+        <f:textbox value="/alma"/>
     </f:entry>
   </f:section>
 </j:jelly>

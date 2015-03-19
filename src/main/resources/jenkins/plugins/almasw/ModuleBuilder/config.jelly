@@ -1,0 +1,54 @@
+<?xml version="1.0"?>
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form">
+  <st:nbsp/>
+  <f:section title="General configuration">
+    <f:entry title="Module name" field="module">
+      <f:textbox/>
+    </f:entry>
+    <f:entry title="ACS" field="acs" value="ACS-current">
+      <f:select/>
+    </f:entry>
+    <f:entry title="Introot name" field="introot">
+      <f:textbox/>
+    </f:entry>
+  </f:section>
+  <f:section title="Make configuration">
+    <f:entry title="Extra verbose" field="verbose">
+      <f:checkbox/>
+    </f:entry>
+    <f:entry title="Make no static" field="noStatic">
+      <f:checkbox/>
+    </f:entry>
+    <f:entry title="Make no IFR check" field="noIfr">
+      <f:checkbox/>
+    </f:entry>
+    <f:entry title="Enable CCACHE" field="ccache">
+      <f:checkbox/>
+    </f:entry>
+    <f:block>
+      <table>
+        <f:optionalBlock title="Make parallel jobs" name="pars" inline="true" field="pars">
+          <f:entry title="Number of parallel jobs" field="jobs">
+            <f:textbox/>
+          </f:entry>
+          <f:entry title="Limit of parallel jobs" field="limit">
+            <f:textbox/>
+          </f:entry>
+        </f:optionalBlock>
+      </table>
+    </f:block>
+  </f:section>
+  <f:section title="Module Dependencies">
+    <f:entry title="" field="dependencies">
+      <div align="left">
+        <f:repeatableProperty field="dependencies"/>
+      </div>
+    </f:entry>
+  </f:section>
+  <!--
+  <f:section title="Advanced Builder Options">
+    <f:advanced/>
+  </f:section>
+  -->
+</j:jelly>
