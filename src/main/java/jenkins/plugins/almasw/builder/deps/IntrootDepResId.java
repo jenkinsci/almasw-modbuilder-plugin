@@ -6,7 +6,7 @@ import hudson.ExtensionPoint;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.export.Exported;
 
-public class IntrootDepResId extends IntrootDepRes implements ExtensionPoint {
+public class IntrootDepResId extends IntrootDepRes {
 	
 	protected final int id;
 	

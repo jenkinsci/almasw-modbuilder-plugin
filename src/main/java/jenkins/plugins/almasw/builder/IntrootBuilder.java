@@ -1,24 +1,30 @@
 package jenkins.plugins.almasw.builder;
 
+import hudson.Extension;
+import hudson.FilePath;
+import hudson.Launcher;
+import hudson.model.BuildListener;
+import hudson.model.AbstractBuild;
+import hudson.model.AbstractProject;
+import hudson.tasks.BuildStepDescriptor;
+import hudson.tasks.Builder;
+import hudson.util.FormValidation;
+import hudson.util.ListBoxModel;
+
 import java.io.File;
 import java.io.FileFilter;
 import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
+import java.io.PrintStream;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 
 import javax.servlet.ServletException;
 
-import jenkins.model.Jenkins;
 import jenkins.plugins.almasw.builder.deps.IntrootDep;
 import net.sf.json.JSONObject;
 
@@ -27,29 +33,12 @@ import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.export.Exported;
 
-import com.google.common.base.CaseFormat;
-import com.thoughtworks.xstream.io.path.Path;
-
-import hudson.Extension;
-import hudson.Launcher;
-import hudson.Proc;
-import hudson.Launcher.ProcStarter;
-import hudson.model.AbstractBuild;
-import hudson.model.AbstractProject;
-import hudson.model.BuildListener;
-import hudson.model.Result;
-import hudson.model.Descriptor;
-import hudson.model.Descriptor.FormException;
-import hudson.tasks.BuildStepDescriptor;
-import hudson.tasks.Builder;
-import hudson.util.FormValidation;
-import hudson.util.ListBoxModel;
-import hudson.util.ListBoxModel.Option;
-
 public class IntrootBuilder extends Builder {
 	
 	public static final String DEFAULT_PROFILE = "/alma/ACS-current/ACSSW/config/.acs/.bash_profile.acs";
-
+	public static final String DEFAULT_ACS_INSTALL = "/alma/ACS-current";
+	public static final String DEFAULT_ACS_INTROOT = "$ALMASW_ACSSW";
+			
 	public final int cores;
 
 	private String acs;
@@ -63,17 +52,17 @@ public class IntrootBuilder extends Builder {
 	private final List<IntrootDep> dependencies;
 	private final boolean ccache;
 	private final String introot;
+	private final boolean dry;
 	private Date date;
 	
-	// configured at perform execution
-	AbstractBuild abstractBuild;
-	Launcher launcher;
-	BuildListener buildListener;
+	private transient AbstractBuild build;
+	private transient Launcher launcher;
+	private transient BuildListener listener;
 
 	@DataBoundConstructor
 	public IntrootBuilder(String acs, String module, boolean verbose,
 			boolean pars, int jobs, int limit, boolean noStatic, boolean noIfr,
-			List<IntrootDep> dependencies, boolean ccache, String introot) {
+			List<IntrootDep> dependencies, boolean ccache, String introot, boolean dry) {
 
 		this.cores = Runtime.getRuntime().availableProcessors();
 		
@@ -82,14 +71,166 @@ public class IntrootBuilder extends Builder {
 		this.verbose = verbose;
 		this.pars = pars;
 		this.jobs = jobs;
-			//(jobs < 0 ) ? ((this.cores > 1) ? this.cores : 1) : ((jobs == 0) ? jobs : 1);
 		this.limit = limit;
-			//(limit < 0 ) ? ((this.cores > 1) ? this.cores : 1) : ((limit == 0) ? jobs : 1);
 		this.noStatic = noStatic;
 		this.noIfr = noIfr;
 		this.dependencies = dependencies;
 		this.ccache = ccache;
 		this.introot = introot;
+		this.dry = dry;
+	}
+	
+	@SuppressWarnings("deprecation")
+	public Map<String, String> getBuildEnv() throws Exception {
+		
+		String number = String.valueOf(this.build.getNumber());
+		String id = this.build.getId();
+		String url = this.build.getUrl();
+		String name = this.build.getProject().getName();
+		String tag = "$JOB_NAME-$BUILD_NUMBER";
+		
+		StringBuilder workspace = new StringBuilder();
+		workspace.append(this.getBuild().getProject().getRootDir().getCanonicalPath());
+		workspace.append(File.separator);
+		workspace.append(this.getBuild().getProject().getWorkspace().getName());
+		
+		String acs = this.getDescriptor().getAcsInstall();
+		acs = acs == null || acs.isEmpty() ? DEFAULT_ACS_INSTALL : acs;
+		
+		String rtai = acs + File.separator + "rtai";
+		String linux = acs + File.separator + "rtlinux";
+		String profile =  acs + File.separator + "ACSSW/config/.acs/.bash_profile.acs";
+		
+		String almabtag = "ALMASW-$BUILD_TAG";
+		String almasw = "$ALMASW_BTAG/ACSSW";
+		String acsdata = "$ALMASW_BTAG/acsdata";
+		String latest = "ALMASW-$JOB_NAME"; 
+		String introot = almasw;
+		 
+		Map<String, String> envvars = new HashMap<String, String>();
+		
+		envvars.put("BUILD_NUMBER", number);
+		envvars.put("BUILD_ID", id);
+		envvars.put("BUILD_URL", url);
+		envvars.put("JOB_NAME", name);
+		envvars.put("BUILD_TAG", tag);
+		envvars.put("WORKSPACE", workspace.toString());
+		
+		envvars.put("ALMASW_PROFILE", profile);
+		envvars.put("RTAI_HOME", linux);
+		envvars.put("LINUX_HOME", linux);
+		
+		envvars.put("ALMASW_BTAG", almabtag);
+		envvars.put("ALMASW_LATEST", latest);
+		
+		envvars.put("ALMASW_ACSSW", almasw);
+		envvars.put("ALMASW_INTROOT", introot);
+		envvars.put("INTROOT", introot);
+		envvars.put("ALMASW_ACSDATA", acsdata);
+		envvars.put("ACSDATA", acsdata);
+			
+		if(this.verbose)
+			envvars.put("MAKE_VERBOSE", "on");
+		
+		if(this.noIfr)
+			envvars.put("MAKE_NOIFR_CHECK", "yes");
+		
+		if(this.noStatic) {
+			envvars.put("_NOSTATIC", "yes");
+			envvars.put("MAKE_NOSTATIC", "yes");
+		}
+		
+		if(this.pars && this.cores > 1) {
+			
+			StringBuilder makePars = new StringBuilder();
+			makePars.append("-j");
+			
+			if(this.jobs < 0) {
+				makePars.append(this.cores - 1);
+			} else if(this.jobs == 0){
+				makePars.append(1);
+			} else {
+				makePars.append(this.jobs);
+			}
+			
+			if( this.limit != 0 ) {
+				makePars.append(" -l");
+				if(this.limit < 0) {
+					makePars.append(this.cores - 1);
+				} else {
+					makePars.append(this.limit);
+				}
+			}
+			
+			envvars.put("MAKE_PARS", makePars.toString());
+		}
+		
+		return envvars;
+	}
+	
+	@Override
+	public boolean perform(AbstractBuild build, Launcher launcher, BuildListener listener) {
+		
+		this.build = build;
+		this.launcher = launcher;
+		this.listener = listener;
+		
+		PrintStream logger = listener.getLogger();
+		FilePath workspace = build.getProject().getWorkspace();
+		
+		Map<String, String> buildEnv =  build.getEnvVars();
+		
+		try {
+			buildEnv.putAll(this.getBuildEnv());
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		
+		ArrayList<String> commands = new ArrayList<String>();
+		commands.add("source $ALMASW_PROFILE");
+		commands.add("getTemplateForDirectory INTROOT $ALMASW_INTROOT");
+		commands.add("make build -C " + this.module);
+		commands.add("ln -sf $ALMASW_BTAG $ALMASW_LATEST");
+		
+		try {
+			for(String command: commands) {
+				if(this.dry) {
+					launcher.launch("echo " + command, buildEnv, logger, workspace).join();
+				} else {
+					launcher.launch(command, buildEnv, logger, workspace).join();
+				}
+			}
+			return true;
+		} catch (IOException e) {
+			e.printStackTrace();
+			return false;
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+			return false;
+		}
+	}
+	
+	private AbstractBuild getBuild() throws Exception {
+		if(build == null)
+			throw new Exception("must be configured by the \"perform\" method");
+		return build;
+	}
+
+	private Launcher getLauncher() throws Exception {
+		if(launcher == null)
+			throw new Exception("must be configured by the \"perform\" method");
+		return launcher;
+	}
+
+	private BuildListener getListener() throws Exception {
+		if(listener == null)
+			throw new Exception("must be configured by the \"perform\" method");
+		return listener;
+	}
+	
+	@Exported
+	public List<IntrootDep> getDependencies() {
+		return dependencies;
 	}
 	
 	@Exported
@@ -146,125 +287,24 @@ public class IntrootBuilder extends Builder {
 	public String getIntroot() {
 		return introot;
 	}
-
+	
 	@Exported
-	public List<IntrootDep> getDependencies() {
-		return dependencies;
-	}
-	
-	public void println(String message) {
-		this.buildListener.getLogger().println(message);
-	}
-	
-	public AbstractBuild getAbstractBuild() throws Exception {
-		if(abstractBuild == null)
-			throw new Exception("must be configured by the \"perform\" method");
-		return abstractBuild;
-	}
-
-	public Launcher getLauncher() throws Exception {
-		if(launcher == null)
-			throw new Exception("must be configured by the \"perform\" method");
-		return launcher;
-	}
-
-	public BuildListener getBuildListener() throws Exception {
-		if(buildListener == null)
-			throw new Exception("must be configured by the \"perform\" method");
-		return buildListener;
-	}
-
-	public void printEnvironment() {
-		this.println("");
-		this.println("almasw modbuilder environment");
-		this.println(this.date.toGMTString());
-		this.println("");
-		if(this.getDependencies() != null) {
-			this.println("Dependencies");
-			for(IntrootDep dependency: this.getDependencies())
-				this.println("\t- " + dependency.toString());
-		}
-		this.println("");
-	}
-	
-	public Map<String, String> envvars() {
-		Map<String, String> envvars = new HashMap<String, String>();
-		
-		// general jenkins
-		envvars.put("BUILD_NUMBER", String.valueOf(this.abstractBuild.getNumber()));
-		envvars.put("BUILD_ID", this.abstractBuild.getId());
-		envvars.put("BUILD_URL", this.abstractBuild.getUrl());
-		//envvars.put("JOB_NAME", String.valueOf(this.abstractBuild.getExternalizableId().split("#")[0]));
-		envvars.put("JOB_NAME", this.abstractBuild.getProject().getName());
-		envvars.put("BUILD_TAG", "$JOB_NAME-$BUILD_NUMBER");
-		
-		try {
-			//getBuildDir
-			envvars.put("WORKSPACE", 
-					this.abstractBuild.getProject().getRootDir().getCanonicalPath() + 
-					File.separator + 
-					this.abstractBuild.getProject().getWorkspace().getName() );
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		
-		// almasw build configuration
-		envvars.put("RTAI_HOME",this.getDescriptor().getAcsInstall() + File.separator + "rtai");
-		envvars.put("LINUX_HOME",this.getDescriptor().getAcsInstall() + File.separator + "rtlinux");
-		envvars.put("BUILDER_PROFILE",this.getDescriptor().getAcsInstall() + File.separator + "ACSSW/config/.acs/.bash_profile.acs");
-		envvars.put("ALMASW_ACSSW", "$WORKSPACE/ALMASW-$BUILD_TAG/ACSSW");
-		envvars.put("ALMASW_ACSDATA", "$WORKSPACE/ALMASW-$BUILD_TAG/acsdata");
-		envvars.put("INTROOT","$ALMASW_ACSSW");
-		
-		return envvars;
-	}
-	
-	@Override
-	public boolean perform(AbstractBuild build, Launcher launcher, BuildListener listener) {
-		
-		this.abstractBuild = build;
-		this.launcher = launcher;
-		this.buildListener = listener;
-		
-		this.date = new Date();
-		this.printEnvironment();
-		
-		Map<String, String> envvars = build.getEnvVars();
-		envvars.putAll(this.envvars());
-		
-		try {
-		
-			Proc proc1 = launcher.launch(
-					"echo $INTROOT", 
-					envvars, 
-					listener.getLogger(),
-					build.getProject().getWorkspace());
-			proc1.join();
-			this.println("");
-			
-		} catch (IOException e) {
-			e.printStackTrace();
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-		}
-		
-		this.println("");
-		
-		return true;
+	public boolean getDry() {
+		return dry;
 	}
 
 	@Override
-	public DescriptorImpl getDescriptor() {
-		return (DescriptorImpl) super.getDescriptor();
+	public IntrootBuilderDescriptor getDescriptor() {
+		return (IntrootBuilderDescriptor) super.getDescriptor();
 	}
-
+	
 	@Extension
-	public static final class DescriptorImpl extends BuildStepDescriptor<Builder> {
+	public static final class IntrootBuilderDescriptor extends BuildStepDescriptor<Builder> {
 
 		private String ccacheInstall;
 		private String acsInstall;
 		
-		public DescriptorImpl() {
+		public IntrootBuilderDescriptor() {
 			load();
 		}
 		
@@ -295,7 +335,7 @@ public class IntrootBuilder extends Builder {
 		public ListBoxModel doFillAcsItems() {
 			
 			String basePath = (this.acsInstall != null && !this.acsInstall.isEmpty()) ? this.acsInstall : "/alma"; 
-			File almaBase = new File(basePath);
+			File almaInstall = new File(basePath);
 			
 			ListBoxModel items = new ListBoxModel();
 			Set<String> installations = new HashSet<String>();
@@ -303,7 +343,7 @@ public class IntrootBuilder extends Builder {
 			items.add(basePath + File.separator + "ACS-current");
 			
 			try {
-				for(File installation : almaBase.listFiles(
+				for(File installation : almaInstall.listFiles(
 						new FileFilter() {
 							public boolean accept(File pathname) { 
 								return pathname.isDirectory(); 

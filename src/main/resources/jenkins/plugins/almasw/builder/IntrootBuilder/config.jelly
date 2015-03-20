@@ -9,8 +9,13 @@
     <f:entry title="ACS" field="acs" value="ACS-current">
       <f:select/>
     </f:entry>
+    <!--
     <f:entry title="Introot name" field="introot">
       <f:textbox/>
+    </f:entry>
+    -->
+    <f:entry title="Dry run" field="dry">
+      <f:checkbox/>
     </f:entry>
   </f:section>
   <f:section title="Make configuration">

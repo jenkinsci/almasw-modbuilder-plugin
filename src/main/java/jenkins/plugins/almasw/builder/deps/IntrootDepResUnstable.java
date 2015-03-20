@@ -5,7 +5,7 @@ import hudson.ExtensionPoint;
 
 import org.kohsuke.stapler.DataBoundConstructor;
 
-public class IntrootDepResUnstable extends IntrootDepRes implements ExtensionPoint {
+public class IntrootDepResUnstable extends IntrootDepRes {
 
 	@DataBoundConstructor
 	public IntrootDepResUnstable() { }
