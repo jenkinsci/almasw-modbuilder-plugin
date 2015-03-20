@@ -4,11 +4,8 @@
   <f:entry title="Project" field="project">
     <f:textbox/>
   </f:entry>
-  <f:entry title="Build type" field="build">
-    <f:select/>
-  </f:entry>
-  <f:entry title="Job Id" field="jobId">
-    <f:textbox/>
+  <f:entry>
+      <f:dropdownDescriptorSelector title="Results" field="result" descriptors="${descriptor.results}" />
   </f:entry>
   <f:entry title="Strategy type" field="strategy">
     <f:select/>

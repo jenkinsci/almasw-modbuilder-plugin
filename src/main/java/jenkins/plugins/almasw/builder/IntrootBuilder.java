@@ -1,4 +1,4 @@
-package jenkins.plugins.almasw;
+package jenkins.plugins.almasw.builder;
 
 import java.io.File;
 import java.io.FileFilter;
@@ -18,6 +18,8 @@ import java.util.Set;
 
 import javax.servlet.ServletException;
 
+import jenkins.model.Jenkins;
+import jenkins.plugins.almasw.builder.deps.IntrootDep;
 import net.sf.json.JSONObject;
 
 import org.kohsuke.stapler.DataBoundConstructor;
@@ -36,6 +38,7 @@ import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
 import hudson.model.BuildListener;
 import hudson.model.Result;
+import hudson.model.Descriptor;
 import hudson.model.Descriptor.FormException;
 import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.Builder;
@@ -43,7 +46,7 @@ import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
 import hudson.util.ListBoxModel.Option;
 
-public class ModuleBuilder extends Builder {
+public class IntrootBuilder extends Builder {
 	
 	public static final String DEFAULT_PROFILE = "/alma/ACS-current/ACSSW/config/.acs/.bash_profile.acs";
 
@@ -57,7 +60,7 @@ public class ModuleBuilder extends Builder {
 	private final int limit;
 	private final boolean noStatic;
 	private final boolean noIfr;
-	private final List<ModuleDependencies> dependencies;
+	private final List<IntrootDep> dependencies;
 	private final boolean ccache;
 	private final String introot;
 	private Date date;
@@ -68,9 +71,9 @@ public class ModuleBuilder extends Builder {
 	BuildListener buildListener;
 
 	@DataBoundConstructor
-	public ModuleBuilder(String acs, String module, boolean verbose,
+	public IntrootBuilder(String acs, String module, boolean verbose,
 			boolean pars, int jobs, int limit, boolean noStatic, boolean noIfr,
-			List<ModuleDependencies> dependencies, boolean ccache, String introot) {
+			List<IntrootDep> dependencies, boolean ccache, String introot) {
 
 		this.cores = Runtime.getRuntime().availableProcessors();
 		
@@ -145,7 +148,7 @@ public class ModuleBuilder extends Builder {
 	}
 
 	@Exported
-	public List<ModuleDependencies> getDependencies() {
+	public List<IntrootDep> getDependencies() {
 		return dependencies;
 	}
 	
@@ -178,7 +181,7 @@ public class ModuleBuilder extends Builder {
 		this.println("");
 		if(this.getDependencies() != null) {
 			this.println("Dependencies");
-			for(ModuleDependencies dependency: this.getDependencies())
+			for(IntrootDep dependency: this.getDependencies())
 				this.println("\t- " + dependency.toString());
 		}
 		this.println("");
