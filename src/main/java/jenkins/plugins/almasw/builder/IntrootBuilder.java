@@ -165,6 +165,11 @@ public class IntrootBuilder extends Builder {
 			envvars.put("MAKE_PARS", makePars.toString());
 		}
 		
+		if(this.ccache) {
+			envvars.put("CCACHE_ROOT", this.getDescriptor().getCcacheInstall());
+			envvars.put("CCACHE_DIR", ".ccache");
+		}
+		
 		return envvars;
 	}
 	
@@ -178,19 +183,34 @@ public class IntrootBuilder extends Builder {
 		PrintStream logger = listener.getLogger();
 		FilePath workspace = build.getProject().getWorkspace();
 		
-		Map<String, String> buildEnv =  build.getEnvVars();
+		// environment setup
 		
+		Map<String, String> buildEnv =  build.getEnvVars();
 		try {
 			buildEnv.putAll(this.getBuildEnv());
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
 		
+		// buid lifecycle
+		
 		ArrayList<String> commands = new ArrayList<String>();
+		
+		// setup phase
 		commands.add("source $ALMASW_PROFILE");
 		commands.add("getTemplateForDirectory INTROOT $ALMASW_INTROOT");
+				
+		// build phase
+		
+		// ccache setup, update path in order to cache builds
+		if(this.ccache) {
+			commands.add("export PATH=$CCACHE_ROOT/bin:$PATH");
+			commands.add("mkdir -p $CCACHE_DIR");
+		}
+		
 		commands.add("make build -C " + this.module);
 		commands.add("ln -sf $ALMASW_BTAG $ALMASW_LATEST");
+		commands.add("$PATH");
 		
 		try {
 			for(String command: commands) {
