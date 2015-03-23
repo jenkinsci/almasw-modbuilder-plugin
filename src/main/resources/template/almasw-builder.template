@@ -5,7 +5,7 @@
 
 # generated variables
 
-_build_number="{$BUILD_NUMBER}"
+_build_number="${BUILD_NUMBER}"
 _build_id="${BUILD_ID}"
 _build_url="${BUILD_URL}"
 _build_name="${JOB_NAME}"
@@ -27,8 +27,10 @@ _alma_nfo="${_alma_module}_${_build_number}.nfo"
 # introot and dir stuff
 
 mkdir -p ${_alma_build_tag}
-mkdir -p ${ACSDATA}/tmp
-mkdir -p ${ACSDATA}/tomcat5/webapp
+
+mkdir -p ${_alma_acsdata}/tmp
+
+mkdir -p ${_alma_acsdata}/tomcat5/webapp
 
 export INTROOT="${_build_workspace}/${_alma_acssw}"
 
@@ -91,7 +93,9 @@ make build -C ${_alma_module}
 
 # post tasks
 
-cp ${_alma_nfo} ${_alma_build_tag}
+cp ${_alma_nfo} ${_alma_build_tag}/
+
+cp ${_alma_module}/build.log ${_alma_build_tag}/
 
 ln -sf ${_alma_build_tag} ${_alma_latest}
 

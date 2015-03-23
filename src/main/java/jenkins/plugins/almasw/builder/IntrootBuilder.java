@@ -46,7 +46,7 @@ import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.export.Exported;
 
 public class IntrootBuilder extends Builder {
-	
+		
 	public transient final int cores;
 
 	public String acs;
@@ -148,8 +148,7 @@ public class IntrootBuilder extends Builder {
 		return intlist;
 	}
 	
-	public File generateScript(AbstractBuild build, Launcher launcher, BuildListener listener) throws IOException {
-				
+	public File generateScript(AbstractBuild build, Launcher launcher, BuildListener listener) throws IOException {		
 		VelocityEngine velocity = new VelocityEngine();
 
 		velocity.setProperty(RuntimeConstants.RESOURCE_LOADER, "classpath");
@@ -191,50 +190,45 @@ public class IntrootBuilder extends Builder {
 		
 		File nfoFile = new File(workspace, nfo);
 		PrintWriter printWriter = new PrintWriter(nfoFile);
+
+		this.writeAndLog(printWriter, listener, "/start");
 		
-		this.writeAndLog(printWriter, listener, "");
-		this.writeAndLog(printWriter, listener, "# almasw-modbuilder");
-		this.writeAndLog(printWriter, listener, "");
-		
-		this.writeAndLog(printWriter, listener, "   * Id           : ", String.valueOf(build.getNumber()));
-		this.writeAndLog(printWriter, listener, "   * Module       : ", this.getModule());
-		this.writeAndLog(printWriter, listener, "   * ACS          : ", this.getAcs());
-		this.writeAndLog(printWriter, listener, "   * No IFR check : ", String.valueOf(this.getNoIfr()));
-		this.writeAndLog(printWriter, listener, "   * No static    : ", String.valueOf(this.getNoStatic()));
-		this.writeAndLog(printWriter, listener, "   * Verbose      : ", String.valueOf(this.getVerbose()));
-		this.writeAndLog(printWriter, listener, "   * Dry          : ", String.valueOf(this.getDry()));
-		this.writeAndLog(printWriter, listener, "   * CCACHE       : ", String.valueOf(this.getCcache()));
+		this.writeAndLog(printWriter, listener, "/id=", String.valueOf(build.getNumber()));
+		this.writeAndLog(printWriter, listener, "/module=", this.getModule());
+		this.writeAndLog(printWriter, listener, "/acs =", this.getAcs());
+		this.writeAndLog(printWriter, listener, "/noifrcheck=", String.valueOf(this.getNoIfr()));
+		this.writeAndLog(printWriter, listener, "/nostatic=", String.valueOf(this.getNoStatic()));
+		this.writeAndLog(printWriter, listener, "/verbose=", String.valueOf(this.getVerbose()));
+		this.writeAndLog(printWriter, listener, "/dry=", String.valueOf(this.getDry()));
+		this.writeAndLog(printWriter, listener, "/ccache=", String.valueOf(this.getCcache()));
 		
 		if(this.getPars()) {
-			this.writeAndLog(printWriter, listener, "   * Make Jobs    : ", String.valueOf(this.getMakePars()));	
+			this.writeAndLog(printWriter, listener, "/makejobs=", String.valueOf(this.getMakePars()));	
 		}
 
 		if(this.getDependencies() != null && this.getDependencies().size() > 0) {
-			
-			this.writeAndLog(printWriter, listener, "");
-			this.writeAndLog(printWriter, listener, "## intlist");
+			this.writeAndLog(printWriter, listener, "/intlist=start");
 			
 			for(IntrootDep introot: this.getDependencies()) {
-				this.writeAndLog(printWriter, listener, "");
-				this.writeAndLog(printWriter, listener, "### " + introot.getProject());
-				this.writeAndLog(printWriter, listener, "   * introot: ", introot.getIntroot());
-				
+				this.writeAndLog(printWriter, listener, "/intlist/introot=start");	
+				this.writeAndLog(printWriter, listener, "/intlist/introot/project=" + introot.getProject());
+				this.writeAndLog(printWriter, listener, "/intlist/introot/path=", introot.getIntroot());
 				if(introot.getIsArtifact()) {
-					StringBuilder artifact = new StringBuilder(" from ");
 					String id = introot.getResult().getJenkinsId();
 					String artifactPath = introot.getProjectRootArtifact(id).toString();
 					String artifactRealPath = artifactPath.replace("$JENKINS_HOME", build.getEnvVars().get("JENKINS_HOME").toString());
 					FilePath symlink = new FilePath(new File(artifactRealPath));
-					artifact.append(symlink.readLink());
-					this.writeAndLog(printWriter, listener, "   * artifact source: ", introot.getResult().getJenkinsId());
-					this.writeAndLog(printWriter, listener, "   * artifact: ", introot.getACSSW(), artifact.toString());
+					this.writeAndLog(printWriter, listener, "/intlist/introot/artifact/source=", introot.getResult().getJenkinsId());
+					this.writeAndLog(printWriter, listener, "/intlist/introot/artifact/path=", introot.getACSSW(), symlink.readLink());
 				} else {
-					this.writeAndLog(printWriter, listener, "   * workspace: ", introot.getACSSW());
+					this.writeAndLog(printWriter, listener, "/intlist/introot/workspace=", introot.getACSSW());
 				}
+				this.writeAndLog(printWriter, listener, "/intlist/introot=end");
 			}
+			this.writeAndLog(printWriter, listener, "/intlist=end");
 		}
 		
-		this.writeAndLog(printWriter, listener, "");
+		this.writeAndLog(printWriter, listener, "/end");
 		printWriter.close();
 	}
 	
@@ -254,24 +248,21 @@ public class IntrootBuilder extends Builder {
 	}
 	
 	public void write(PrintWriter printWriter, String ... words) {
-		StringBuilder builder = new StringBuilder();
+		StringBuilder builder = new StringBuilder(RuntimeConfiguration.LOGGER_PREFIX);
 		for(String word: words)
 			builder.append(word);
-		
 		printWriter.println(builder.toString());
 	}
 	
 	public void log(BuildListener listener, String ... words) {
-		StringBuilder builder = new StringBuilder();
+		StringBuilder builder = new StringBuilder(RuntimeConfiguration.LOGGER_PREFIX);
 		for(String word: words)
 			builder.append(word);
-		
 		listener.getLogger().println(builder.toString());
 	}
 	
 	@Override
 	public boolean perform(AbstractBuild build, Launcher launcher, BuildListener listener) throws IOException, InterruptedException {
-		
 		PrintStream logger = listener.getLogger();
 		String workspace =  (String) build.getEnvVars().get("WORKSPACE");
 
@@ -279,11 +270,12 @@ public class IntrootBuilder extends Builder {
 		File script = this.generateScript(build, launcher, listener);
 		
 		StringBuilder command =  new StringBuilder();
-		command.append("sh ");
-		if(this.dry)
-			command.append("-n ");
-		command.append(script.getName()).append(" -x 2>&1");
+		command.append("sh -x ");
 		
+		if(this.dry) {
+			command.append("-n ");
+		}
+				
 		try {
 			ProcStarter process = launcher
 					.launch()
@@ -296,8 +288,7 @@ public class IntrootBuilder extends Builder {
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 			return false;
-		}
-			
+		}	
 		return true;
 	}
 
