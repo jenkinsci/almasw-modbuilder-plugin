@@ -80,7 +80,7 @@ rm -rf ${ACSDATA}
 mkdir -p ${INTROOT}
 mkdir -p ${ACSDATA}/tmp
 mkdir -p ${ACSDATA}/tomcat5/webapp
-
+#if( $builder.hasIntlist() )
 # intlist configuration
 
 #foreach( $introot in $builder.getCachedIntlist() )
@@ -89,7 +89,7 @@ INTLIST_$velocityCount=$introot
 
 export INTLIST=#foreach( $introot in $builder.getCachedIntlist() )$INTLIST_$velocityCount#end
 
-
+#end
 getTemplateForDirectory INTROOT $INTROOT
 
 make build -C ${_alma_module}

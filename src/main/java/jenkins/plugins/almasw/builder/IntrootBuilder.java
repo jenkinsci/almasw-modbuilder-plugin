@@ -151,8 +151,13 @@ public class IntrootBuilder extends Builder {
 	public File generateScript(AbstractBuild build, Launcher launcher, BuildListener listener) throws IOException {
 				
 		VelocityEngine velocity = new VelocityEngine();
+
 		velocity.setProperty(RuntimeConstants.RESOURCE_LOADER, "classpath");
 		velocity.setProperty("classpath.resource.loader.class", ClasspathResourceLoader.class.getName());
+		velocity.setProperty("runtime.log.logsystem.class", "org.apache.velocity.runtime.log.SimpleLog4JLogSystem");
+		velocity.setProperty("runtime.log.logsystem.log4j.category", "velocity");
+		velocity.setProperty("runtime.log.logsystem.log4j.logger", "velocity");
+		velocity.setProperty("log4j.logger.org.apache.velocity.runtime.log.SimpleLog4JLogSystem", "INFO");
 		velocity.init();
 				
 		Template template = velocity.getTemplate("template/almasw-builder.template");
@@ -269,8 +274,8 @@ public class IntrootBuilder extends Builder {
 		PrintStream logger = listener.getLogger();
 		String workspace =  (String) build.getEnvVars().get("WORKSPACE");
 
-		File script = this.generateScript(build, launcher, listener);
 		this.generateInfo(build, listener);
+		File script = this.generateScript(build, launcher, listener);
 		
 		StringBuilder command =  new StringBuilder();
 		command.append("sh ");
@@ -295,6 +300,10 @@ public class IntrootBuilder extends Builder {
 		return true;
 	}
 
+	public boolean hasIntlist() {
+		return this.getDependencies() != null && this.getDependencies().size() > 0;
+	}
+	
 	@Exported
  	public List<IntrootDep> getDependencies() {
 		return dependencies;
