@@ -275,6 +275,8 @@ public class IntrootBuilder extends Builder {
 		if(this.dry) {
 			command.append("-n ");
 		}
+		
+		command.append(script.getName());
 				
 		try {
 			ProcStarter process = launcher
