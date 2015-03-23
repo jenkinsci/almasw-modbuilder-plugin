@@ -192,6 +192,7 @@ public class IntrootBuilder extends Builder {
 		File nfoFile = new File(workspace, nfo);
 		PrintWriter printWriter = new PrintWriter(nfoFile);
 		
+		this.writeAndLog(printWriter, listener, "");
 		this.writeAndLog(printWriter, listener, "# almasw-modbuilder");
 		this.writeAndLog(printWriter, listener, "");
 		

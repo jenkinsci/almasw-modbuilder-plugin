@@ -24,9 +24,13 @@ _alma_module="$builder.getModule()"
 
 _alma_nfo="${_alma_module}_${_build_number}.nfo"
 
-# introot configuration
+# introot and dir stuff
 
-export INTROOT="${_alma_acssw}"
+mkdir -p ${_alma_build_tag}
+mkdir -p ${ACSDATA}/tmp
+mkdir -p ${ACSDATA}/tomcat5/webapp
+
+export INTROOT="${_build_workspace}/${_alma_acssw}"
 
 # load profile
 
@@ -72,15 +76,7 @@ export LINUX_HOME="${_acs_path}/rtlinux"
 
 # lifecycle
 
-# remove old stuff, just in case
-rm -rf ${INTROOT}
-rm -rf ${ACSDATA}
-
-# safety, just create the default directories
-mkdir -p ${INTROOT}
-mkdir -p ${ACSDATA}/tmp
-mkdir -p ${ACSDATA}/tomcat5/webapp
-#if( $builder.hasIntlist() )
+if( $builder.hasIntlist() )
 # intlist configuration
 
 #foreach( $introot in $builder.getCachedIntlist() )
