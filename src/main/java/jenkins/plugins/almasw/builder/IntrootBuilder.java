@@ -47,7 +47,7 @@ import org.kohsuke.stapler.export.Exported;
 
 public class IntrootBuilder extends Builder {
 	
-	public final int cores;
+	public transient final int cores;
 
 	public String acs;
 	public final String module;
@@ -167,17 +167,16 @@ public class IntrootBuilder extends Builder {
 		StringWriter stringWriter = new StringWriter();
 		template.merge(context, stringWriter);
 		
-		String prefix = "" + this.module + "_" + build.getNumber() + "_";
-		String suffix = "_builder";
+		String script = this.module + "_" + build.getNumber() + "_";
 		String workspace =  (String) build.getEnvVars().get("WORKSPACE");
 
-		File script = File.createTempFile(prefix , suffix, new File(workspace));
-		PrintWriter printWriter = new PrintWriter(script);
+		File scriptFile = new File(workspace, script);
+		PrintWriter printWriter = new PrintWriter(scriptFile);
 		printWriter.print(stringWriter.toString());
 		printWriter.close();
-		script.setExecutable(true);
+		scriptFile.setExecutable(true);
 		
-		return script;	
+		return scriptFile;	
 	}
 	
 	public void generateInfo(AbstractBuild build, BuildListener listener) throws IOException, InterruptedException {
