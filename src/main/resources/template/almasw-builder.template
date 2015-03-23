@@ -5,8 +5,8 @@
 
 # generated variables
 
-_build_number="$BUILD_NUMBER"
-_build_id="$BUILD_ID"
+_build_number="{$BUILD_NUMBER}"
+_build_id="${BUILD_ID}"
 _build_url="${BUILD_URL}"
 _build_name="${JOB_NAME}"
 _build_tag="${JOB_NAME}-${BUILD_NUMBER}"
@@ -88,9 +88,9 @@ INTLIST_$velocityCount=$introot
 #end
 
 export INTLIST=#foreach( $introot in $builder.getCachedIntlist() )$INTLIST_$velocityCount#end
-
 #end
-getTemplateForDirectory INTROOT $INTROOT
+
+getTemplateForDirectory INTROOT ${INTROOT} > /dev/null 2>&1
 
 make build -C ${_alma_module}
 

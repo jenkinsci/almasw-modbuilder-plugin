@@ -172,7 +172,7 @@ public class IntrootBuilder extends Builder {
 		StringWriter stringWriter = new StringWriter();
 		template.merge(context, stringWriter);
 		
-		String script = this.module + "_" + build.getNumber() + "_";
+		String script = this.module + "_" + build.getNumber();
 		String workspace =  (String) build.getEnvVars().get("WORKSPACE");
 
 		File scriptFile = new File(workspace, script);
