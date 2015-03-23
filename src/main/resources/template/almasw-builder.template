@@ -76,7 +76,7 @@ export LINUX_HOME="${_acs_path}/rtlinux"
 
 # lifecycle
 
-if( $builder.hasIntlist() )
+#if( $builder.hasIntlist() )
 # intlist configuration
 
 #foreach( $introot in $builder.getCachedIntlist() )
@@ -85,7 +85,6 @@ INTLIST_$velocityCount=$introot
 
 export INTLIST=#foreach( $introot in $builder.getCachedIntlist() )$INTLIST_$velocityCount#end
 #end
-
 getTemplateForDirectory INTROOT ${INTROOT} > /dev/null 2>&1
 
 make build -C ${_alma_module}
