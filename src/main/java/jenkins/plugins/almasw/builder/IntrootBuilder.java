@@ -1,11 +1,14 @@
 package jenkins.plugins.almasw.builder;
 
+import static hudson.util.jna.GNUCLibrary.LIBC;
 import hudson.Extension;
 import hudson.FilePath;
 import hudson.Launcher;
+import hudson.Launcher.ProcStarter;
 import hudson.model.BuildListener;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
+import hudson.model.Project;
 import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.Builder;
 import hudson.util.FormValidation;
@@ -13,21 +16,30 @@ import hudson.util.ListBoxModel;
 
 import java.io.File;
 import java.io.FileFilter;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import javax.servlet.ServletException;
 
+import jenkins.model.Jenkins;
 import jenkins.plugins.almasw.builder.deps.IntrootDep;
+import jenkins.plugins.almasw.builder.deps.IntrootDepResId;
 import net.sf.json.JSONObject;
 
+import org.apache.velocity.Template;
+import org.apache.velocity.VelocityContext;
+import org.apache.velocity.app.VelocityEngine;
+import org.apache.velocity.runtime.RuntimeConstants;
+import org.apache.velocity.runtime.resource.loader.ClasspathResourceLoader;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
@@ -35,30 +47,25 @@ import org.kohsuke.stapler.export.Exported;
 
 public class IntrootBuilder extends Builder {
 	
-	public static final String DEFAULT_PROFILE = "/alma/ACS-current/ACSSW/config/.acs/.bash_profile.acs";
-	public static final String DEFAULT_ACS_INSTALL = "/alma/ACS-current";
-	public static final String DEFAULT_ACS_INTROOT = "$ALMASW_ACSSW";
-			
 	public final int cores;
 
-	private String acs;
-	private final String module;
-	private final boolean verbose;
-	private final boolean pars;
-	private final int jobs;
-	private final int limit;
-	private final boolean noStatic;
-	private final boolean noIfr;
-	private final List<IntrootDep> dependencies;
-	private final boolean ccache;
-	private final String introot;
-	private final boolean dry;
-	private Date date;
+	public String acs;
+	public final String module;
+	public final boolean verbose;
+	public final boolean pars;
+	public final int jobs;
+	public final int limit;
+	public final boolean noStatic;
+	public final boolean noIfr;
+	public final List<IntrootDep> dependencies;
+	public final boolean ccache;
+	public final String introot;
+	public final boolean dry;
+	public Date date;
 	
-	private transient AbstractBuild build;
-	private transient Launcher launcher;
-	private transient BuildListener listener;
-
+	private transient ArrayList<String> intlist;
+	private transient String makePars;
+	
 	@DataBoundConstructor
 	public IntrootBuilder(String acs, String module, boolean verbose,
 			boolean pars, int jobs, int limit, boolean noStatic, boolean noIfr,
@@ -80,69 +87,17 @@ public class IntrootBuilder extends Builder {
 		this.dry = dry;
 	}
 	
-	@SuppressWarnings("deprecation")
-	public Map<String, String> getBuildEnv() throws Exception {
+	public String getCachedMakePars() {
+		if(this.makePars == null)
+			this.makePars = this.getMakePars();
+		return this.makePars;
+	}
+	
+	public String getMakePars() {
 		
-		String number = String.valueOf(this.build.getNumber());
-		String id = this.build.getId();
-		String url = this.build.getUrl();
-		String name = this.build.getProject().getName();
-		String tag = "$JOB_NAME-$BUILD_NUMBER";
-		
-		StringBuilder workspace = new StringBuilder();
-		workspace.append(this.getBuild().getProject().getRootDir().getCanonicalPath());
-		workspace.append(File.separator);
-		workspace.append(this.getBuild().getProject().getWorkspace().getName());
-		
-		String acs = this.getDescriptor().getAcsInstall();
-		acs = acs == null || acs.isEmpty() ? DEFAULT_ACS_INSTALL : acs;
-		
-		String rtai = acs + File.separator + "rtai";
-		String linux = acs + File.separator + "rtlinux";
-		String profile =  acs + File.separator + "ACSSW/config/.acs/.bash_profile.acs";
-		
-		String almabtag = "ALMASW-$BUILD_TAG";
-		String almasw = "$ALMASW_BTAG/ACSSW";
-		String acsdata = "$ALMASW_BTAG/acsdata";
-		String latest = "ALMASW-$JOB_NAME"; 
-		String introot = almasw;
-		 
-		Map<String, String> envvars = new HashMap<String, String>();
-		
-		envvars.put("BUILD_NUMBER", number);
-		envvars.put("BUILD_ID", id);
-		envvars.put("BUILD_URL", url);
-		envvars.put("JOB_NAME", name);
-		envvars.put("BUILD_TAG", tag);
-		envvars.put("WORKSPACE", workspace.toString());
-		
-		envvars.put("ALMASW_PROFILE", profile);
-		envvars.put("RTAI_HOME", linux);
-		envvars.put("LINUX_HOME", linux);
-		
-		envvars.put("ALMASW_BTAG", almabtag);
-		envvars.put("ALMASW_LATEST", latest);
-		
-		envvars.put("ALMASW_ACSSW", almasw);
-		envvars.put("ALMASW_INTROOT", introot);
-		envvars.put("INTROOT", introot);
-		envvars.put("ALMASW_ACSDATA", acsdata);
-		envvars.put("ACSDATA", acsdata);
-			
-		if(this.verbose)
-			envvars.put("MAKE_VERBOSE", "on");
-		
-		if(this.noIfr)
-			envvars.put("MAKE_NOIFR_CHECK", "yes");
-		
-		if(this.noStatic) {
-			envvars.put("_NOSTATIC", "yes");
-			envvars.put("MAKE_NOSTATIC", "yes");
-		}
+		StringBuilder makePars = new StringBuilder();
 		
 		if(this.pars && this.cores > 1) {
-			
-			StringBuilder makePars = new StringBuilder();
 			makePars.append("-j");
 			
 			if(this.jobs < 0) {
@@ -161,95 +116,188 @@ public class IntrootBuilder extends Builder {
 					makePars.append(this.limit);
 				}
 			}
+		}
+		
+		return makePars.toString();
+	}
+	
+	public ArrayList<String> getCachedIntlist() {
+		
+		if(this.intlist == null)
+			this.intlist = this.getIntlist();
+		
+		return this.intlist;
+	}
+	
+	// api: not used due builds, nor other stuff can be not still exists
+	// at execution time?, instead using the jenkins hardcoded path..?
+	// for the moment, 
+	public ArrayList<String> getIntlist() {
+		
+		ArrayList<String> intlist = new ArrayList<String>();
+		
+		for(IntrootDep introot: this.getDependencies()) {
+			for(Project project: Jenkins.getInstance().getProjects()) {
+				if(introot.getProject().equalsIgnoreCase(project.getName())) {
+					intlist.add(introot.getIntroot());
+					break;
+				}
+			}
+		}
+		
+		return intlist;
+	}
+	
+	public File generateScript(AbstractBuild build, Launcher launcher, BuildListener listener) throws IOException {
+				
+		VelocityEngine velocity = new VelocityEngine();
+		velocity.setProperty(RuntimeConstants.RESOURCE_LOADER, "classpath");
+		velocity.setProperty("classpath.resource.loader.class", ClasspathResourceLoader.class.getName());
+		velocity.init();
+				
+		Template template = velocity.getTemplate("template/almasw-builder.template");
+		
+		VelocityContext context = new VelocityContext();
+
+		context.put("builder", this);
+		context.put("build", build);
+		context.put("launcher", launcher);
+		context.put("listener", listener);
+		
+		StringWriter stringWriter = new StringWriter();
+		template.merge(context, stringWriter);
+		
+		String prefix = "" + this.module + "_" + build.getNumber() + "_";
+		String suffix = "_builder";
+		String workspace =  (String) build.getEnvVars().get("WORKSPACE");
+
+		File script = File.createTempFile(prefix , suffix, new File(workspace));
+		PrintWriter printWriter = new PrintWriter(script);
+		printWriter.print(stringWriter.toString());
+		printWriter.close();
+		script.setExecutable(true);
+		
+		return script;	
+	}
+	
+	public void generateInfo(AbstractBuild build, BuildListener listener) throws IOException, InterruptedException {
+		
+		String nfo = this.module + "_" + build.getNumber() + ".nfo";
+		String workspace =  (String) build.getEnvVars().get("WORKSPACE");
+		
+		File nfoFile = new File(workspace, nfo);
+		PrintWriter printWriter = new PrintWriter(nfoFile);
+		
+		this.writeAndLog(printWriter, listener, "# almasw-modbuilder");
+		this.writeAndLog(printWriter, listener, "");
+		
+		this.writeAndLog(printWriter, listener, "   * Id           : ", String.valueOf(build.getNumber()));
+		this.writeAndLog(printWriter, listener, "   * Module       : ", this.getModule());
+		this.writeAndLog(printWriter, listener, "   * ACS          : ", this.getAcs());
+		this.writeAndLog(printWriter, listener, "   * No IFR check : ", String.valueOf(this.getNoIfr()));
+		this.writeAndLog(printWriter, listener, "   * No static    : ", String.valueOf(this.getNoStatic()));
+		this.writeAndLog(printWriter, listener, "   * Verbose      : ", String.valueOf(this.getVerbose()));
+		this.writeAndLog(printWriter, listener, "   * Dry          : ", String.valueOf(this.getDry()));
+		this.writeAndLog(printWriter, listener, "   * CCACHE       : ", String.valueOf(this.getCcache()));
+		
+		if(this.getPars()) {
+			this.writeAndLog(printWriter, listener, "   * Make Jobs    : ", String.valueOf(this.getMakePars()));	
+		}
+
+		if(this.getDependencies() != null && this.getDependencies().size() > 0) {
 			
-			envvars.put("MAKE_PARS", makePars.toString());
+			this.writeAndLog(printWriter, listener, "");
+			this.writeAndLog(printWriter, listener, "## intlist");
+			
+			for(IntrootDep introot: this.getDependencies()) {
+				this.writeAndLog(printWriter, listener, "");
+				this.writeAndLog(printWriter, listener, "### " + introot.getProject());
+				this.writeAndLog(printWriter, listener, "   * introot: ", introot.getIntroot());
+				
+				if(introot.getIsArtifact()) {
+					StringBuilder artifact = new StringBuilder(" from ");
+					String id = introot.getResult().getJenkinsId();
+					String artifactPath = introot.getProjectRootArtifact(id).toString();
+					String artifactRealPath = artifactPath.replace("$JENKINS_HOME", build.getEnvVars().get("JENKINS_HOME").toString());
+					FilePath symlink = new FilePath(new File(artifactRealPath));
+					artifact.append(symlink.readLink());
+					this.writeAndLog(printWriter, listener, "   * artifact source: ", introot.getResult().getJenkinsId());
+					this.writeAndLog(printWriter, listener, "   * artifact: ", introot.getACSSW(), artifact.toString());
+				} else {
+					this.writeAndLog(printWriter, listener, "   * workspace: ", introot.getACSSW());
+				}
+			}
 		}
 		
-		if(this.ccache) {
-			envvars.put("CCACHE_ROOT", this.getDescriptor().getCcacheInstall());
-			envvars.put("CCACHE_DIR", ".ccache");
-		}
+		this.writeAndLog(printWriter, listener, "");
+		printWriter.close();
+	}
+	
+	public void getCanonicalArtifact(IntrootDep introot) {
+		StringBuilder introotPath = new StringBuilder();
+		introotPath.append("$JENKINS_HOME");
+		introotPath.append(File.separator);
+		introotPath.append("jobs");
+		introotPath.append(File.separator);
+		introotPath.append(introot.getProject());
+		introotPath.append(introot.getResult().getJenkinsId());
+	}
+	
+	public void writeAndLog(PrintWriter printWriter, BuildListener listener, String ... words) {
+		this.log(listener, words);
+		this.write(printWriter, words);
+	}
+	
+	public void write(PrintWriter printWriter, String ... words) {
+		StringBuilder builder = new StringBuilder();
+		for(String word: words)
+			builder.append(word);
 		
-		return envvars;
+		printWriter.println(builder.toString());
+	}
+	
+	public void log(BuildListener listener, String ... words) {
+		StringBuilder builder = new StringBuilder();
+		for(String word: words)
+			builder.append(word);
+		
+		listener.getLogger().println(builder.toString());
 	}
 	
 	@Override
-	public boolean perform(AbstractBuild build, Launcher launcher, BuildListener listener) {
-		
-		this.build = build;
-		this.launcher = launcher;
-		this.listener = listener;
+	public boolean perform(AbstractBuild build, Launcher launcher, BuildListener listener) throws IOException, InterruptedException {
 		
 		PrintStream logger = listener.getLogger();
-		FilePath workspace = build.getProject().getWorkspace();
+		String workspace =  (String) build.getEnvVars().get("WORKSPACE");
+
+		File script = this.generateScript(build, launcher, listener);
+		this.generateInfo(build, listener);
 		
-		// environment setup
-		
-		Map<String, String> buildEnv =  build.getEnvVars();
-		try {
-			buildEnv.putAll(this.getBuildEnv());
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-		
-		// buid lifecycle
-		
-		ArrayList<String> commands = new ArrayList<String>();
-		
-		// setup phase
-		commands.add("source $ALMASW_PROFILE");
-		commands.add("getTemplateForDirectory INTROOT $ALMASW_INTROOT");
-				
-		// build phase
-		
-		// ccache setup, update path in order to cache builds
-		if(this.ccache) {
-			commands.add("export PATH=$CCACHE_ROOT/bin:$PATH");
-			commands.add("mkdir -p $CCACHE_DIR");
-		}
-		
-		commands.add("make build -C " + this.module);
-		commands.add("ln -sf $ALMASW_BTAG $ALMASW_LATEST");
-		commands.add("$PATH");
+		StringBuilder command =  new StringBuilder();
+		command.append("sh ");
+		if(this.dry)
+			command.append("-n ");
+		command.append(script.getName()).append(" -x 2>&1");
 		
 		try {
-			for(String command: commands) {
-				if(this.dry) {
-					launcher.launch("echo " + command, buildEnv, logger, workspace).join();
-				} else {
-					launcher.launch(command, buildEnv, logger, workspace).join();
-				}
-			}
-			return true;
-		} catch (IOException e) {
-			e.printStackTrace();
-			return false;
+			ProcStarter process = launcher
+					.launch()
+					.envs(build.getEnvVars())
+					.pwd(workspace)
+					.cmdAsSingleString(command.toString())
+					.stdout(logger)
+					.stderr(logger);
+			process.join();
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 			return false;
 		}
-	}
-	
-	private AbstractBuild getBuild() throws Exception {
-		if(build == null)
-			throw new Exception("must be configured by the \"perform\" method");
-		return build;
+			
+		return true;
 	}
 
-	private Launcher getLauncher() throws Exception {
-		if(launcher == null)
-			throw new Exception("must be configured by the \"perform\" method");
-		return launcher;
-	}
-
-	private BuildListener getListener() throws Exception {
-		if(listener == null)
-			throw new Exception("must be configured by the \"perform\" method");
-		return listener;
-	}
-	
 	@Exported
-	public List<IntrootDep> getDependencies() {
+ 	public List<IntrootDep> getDependencies() {
 		return dependencies;
 	}
 	

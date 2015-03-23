@@ -1,5 +1,6 @@
 package jenkins.plugins.almasw.builder.deps;
 
+import java.io.File;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
@@ -17,19 +18,20 @@ import hudson.util.ListBoxModel;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.export.Exported;
+import org.kohsuke.stapler.jelly.ThisTagLibrary;
 
 public class IntrootDep extends AbstractDescribableImpl<IntrootDep> implements Serializable {
 
-	private final String project;
-	private final String strategy;
-	private final String location;
-	private final IntrootDepRes result;
+	public final String project;
+	public final boolean isArtifact;
+	public final String location;
+	public final IntrootDepRes result;
 
 	@DataBoundConstructor
-	public IntrootDep(String project, String strategy, String location, String introot, IntrootDepRes result) {
+	public IntrootDep(String project, boolean isArtifact, String location, String introot, IntrootDepRes result) {
 		
 		this.project = project;
-		this.strategy = strategy;
+		this.isArtifact = isArtifact;
 		this.location = location;
 		this.result = result;
 	}
@@ -40,13 +42,87 @@ public class IntrootDep extends AbstractDescribableImpl<IntrootDep> implements S
 	}
 	
 	@Exported
-	public String getStrategy() {
-		return strategy;
+	public boolean getIsArtifact() {
+		return isArtifact;
 	}
 
 	@Exported
 	public String getLocation() {
 		return location;
+	}
+	
+	public String getIntroot() {
+		StringBuilder introot = new StringBuilder();
+		
+		try {
+			if(this.getIsArtifact()) {
+				String id = this.getResult().getJenkinsId();
+				introot.append(this.getProjectRootArtifact(id));
+			} else {
+				introot.append(this.getProjectWorkspace());
+			}
+			introot.append(File.separator).append(this.getACSSW());
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		
+		return introot.toString();
+	}
+	
+	public String getACSSW() {
+		if(this.getLocation() == null || this.getLocation().isEmpty()) {
+			return "ALMASW-" + this.getProject() + File.separator + "ACSSW";
+		} else {
+			return this.getLocation();
+		}
+	}
+	
+	public StringBuilder getProjectWorkspace() {
+		StringBuilder builder = new StringBuilder();
+		builder.append(this.getProjectRoot());
+		builder.append(File.separator);
+		builder.append("workspace");
+		return builder;
+	}
+	
+	public StringBuilder getProjectRootArtifact(int id) {
+		return this.getProjectRootArtifact(String.valueOf(id));
+	}
+		
+	public StringBuilder getProjectRootArtifact(String type) {
+		StringBuilder builder = new StringBuilder();
+		builder.append(this.getBuildRootId(type));
+		return builder;
+	}
+	
+	public StringBuilder getBuildRootId(int id) {
+		return this.getBuildRootId(String.valueOf(id));
+	}
+	
+	public StringBuilder getBuildRootId(String id) {
+		StringBuilder builder = new StringBuilder();
+		builder.append(this.getProjectRootBuild());
+		builder.append(File.separator);
+		builder.append(id);
+		return builder;
+	}
+	
+	public StringBuilder getProjectRootBuild() {
+		StringBuilder builder = new StringBuilder();
+		builder.append(this.getProjectRoot());
+		builder.append(File.separator);
+		builder.append("builds");
+		return builder;
+	}
+	
+	public StringBuilder getProjectRoot() {
+		StringBuilder builder = new StringBuilder();
+		builder.append("$JENKINS_HOME");
+		builder.append(File.separator);
+		builder.append("jobs");
+		builder.append(File.separator);
+		builder.append(this.getProject());
+		return builder;
 	}
 
 	public IntrootDepRes getResult() {

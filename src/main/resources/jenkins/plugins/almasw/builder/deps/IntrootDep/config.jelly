@@ -4,13 +4,16 @@
   <f:entry title="Project" field="project">
     <f:textbox/>
   </f:entry>
-  <f:entry>
-      <f:dropdownDescriptorSelector title="Result" field="result" descriptors="${descriptor.results}" />
-  </f:entry>
-  <f:entry title="Strategy type" field="strategy">
-    <f:select/>
-  </f:entry>
-  <f:entry title="Strategy location" field="location">
+  <f:block>
+    <table>
+      <f:optionalBlock title="Is an Artifact" name="isArtifact" inline="true" field="isArtifact">
+        <f:entry>
+          <f:dropdownDescriptorSelector title="Result" field="result" descriptors="${descriptor.results}"/>
+        </f:entry>
+      </f:optionalBlock>
+    </table>
+  </f:block>
+  <f:entry title="Directory" field="location">
     <f:textbox/>
   </f:entry>
   <f:entry title="">

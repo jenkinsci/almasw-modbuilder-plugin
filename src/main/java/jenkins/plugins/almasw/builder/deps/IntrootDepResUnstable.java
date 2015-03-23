@@ -9,6 +9,10 @@ public class IntrootDepResUnstable extends IntrootDepRes {
 
 	@DataBoundConstructor
 	public IntrootDepResUnstable() { }
+	
+	public String getJenkinsId() {
+		return EnumBuild.lastUnstableBuild.name();
+	}
 
 	@Extension(ordinal = 10098)
 	public static class IntrootDepResUnstableDescriptor extends IntrootDepResDescriptor {

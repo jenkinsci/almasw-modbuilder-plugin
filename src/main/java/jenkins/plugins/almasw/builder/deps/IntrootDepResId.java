@@ -19,7 +19,11 @@ public class IntrootDepResId extends IntrootDepRes {
 	public int getId() {
 		return id;
 	}
-
+	
+	public String getJenkinsId() {
+		return String.valueOf(this.getJenkinsId());
+	}
+	
 	@Extension(ordinal = 10095)
 	public static class IntrootDepResIdDescriptor extends IntrootDepResDescriptor {
 		

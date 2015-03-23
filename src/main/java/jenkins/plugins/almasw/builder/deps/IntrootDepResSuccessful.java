@@ -9,7 +9,11 @@ public class IntrootDepResSuccessful extends IntrootDepRes {
 
 	@DataBoundConstructor
 	public IntrootDepResSuccessful() { }
-
+	
+	public String getJenkinsId() {
+		return EnumBuild.lastSuccessfulBuild.name();
+	}
+	
 	@Extension(ordinal = 10099)
 	public static class IntrootDepResSuccessfulDescriptor extends IntrootDepResDescriptor {
 

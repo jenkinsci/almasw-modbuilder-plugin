@@ -10,6 +10,8 @@ import jenkins.model.Jenkins;
 
 public abstract class IntrootDepRes implements Describable<IntrootDepRes>, ExtensionPoint, Serializable {
 	
+	public abstract String getJenkinsId();
+	
 	public static DescriptorExtensionList<IntrootDepRes, IntrootDepResDescriptor> getDescriptors() {
 		return Jenkins.getInstance().<IntrootDepRes, IntrootDepResDescriptor>getDescriptorList(IntrootDepRes.class);
 	}

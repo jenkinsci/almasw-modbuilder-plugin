@@ -10,6 +10,10 @@ public class IntrootDepResUnsuccessful extends IntrootDepRes {
 	@DataBoundConstructor
 	public IntrootDepResUnsuccessful() { }
 
+	public String getJenkinsId() {
+		return EnumBuild.lastUnsuccessfulBuild.name();
+	}
+
 	@Extension(ordinal = 10097)
 	public static class IntrootDepResUnsuccessfulDescriptor extends IntrootDepResDescriptor {
 

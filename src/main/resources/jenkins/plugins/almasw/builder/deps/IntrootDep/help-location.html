@@ -1,4 +1,5 @@
 <div>
-	The strategy type location is the name of the artifact, in case of <b>artifact</b> as strategy type is the name of the folder archived,
-	the introot, if the strategy type is <b>workspace</b>, is the relative path of the project dependency.
+    Is where the dependency introot is located relative to the WORKSPACE or the artifact directory (build result type or job id), tipically the introot is named as, if MODULE-HEAD job as a dependency, as ALMASW-MODULE-HEAD/ACSSW, where MODULE-HEAD is a job to build MODULE by using almasw-modbuilder.<br/><br/>
+    
+    This field is optional, the default directory will be ALMASW-{DEPENDENCY JOB NAME}/ACSSW.
 </div>
