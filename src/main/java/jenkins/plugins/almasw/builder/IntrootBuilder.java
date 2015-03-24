@@ -217,7 +217,7 @@ public class IntrootBuilder extends Builder {
 					String artifactRealPath = artifactPath.replace("$JENKINS_HOME", build.getEnvVars().get("JENKINS_HOME").toString());
 					FilePath symlink = new FilePath(new File(artifactRealPath));
 					this.writeAndLog(printWriter, listener, "/intlist/introot/artifact/source=", introot.getResult().getJenkinsId());
-					this.writeAndLog(printWriter, listener, "/intlist/introot/artifact/path=", introot.getACSSW(), symlink.readLink());
+					this.writeAndLog(printWriter, listener, "/intlist/introot/artifact/path=", symlink.readLink(), File.separator, introot.getACSSW());
 				} else {
 					this.writeAndLog(printWriter, listener, "/intlist/introot/workspace=", introot.getACSSW());
 				}
