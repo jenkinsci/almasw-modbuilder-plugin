@@ -92,6 +92,8 @@ public class IntrootDep extends AbstractDescribableImpl<IntrootDep> implements S
 	public StringBuilder getProjectRootArtifact(String type) {
 		StringBuilder builder = new StringBuilder();
 		builder.append(this.getBuildRootId(type));
+		builder.append(File.separator);
+		builder.append("archive");
 		return builder;
 	}
 	
