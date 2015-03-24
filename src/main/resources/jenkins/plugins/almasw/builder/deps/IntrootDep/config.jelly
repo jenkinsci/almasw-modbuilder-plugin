@@ -13,9 +13,11 @@
       </f:optionalBlock>
     </table>
   </f:block>
+  <!--
   <f:entry title="Directory" field="location">
     <f:textbox/>
   </f:entry>
+  -->
   <f:entry title="">
     <div align="right">
       <f:repeatableDeleteButton/>

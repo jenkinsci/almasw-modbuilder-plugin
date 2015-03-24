@@ -13,9 +13,13 @@ import hudson.tasks.Builder;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileFilter;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -193,7 +197,7 @@ public class IntrootBuilder extends Builder {
 		
 		this.writeAndLog(printWriter, listener, "/id=", String.valueOf(build.getNumber()));
 		this.writeAndLog(printWriter, listener, "/module=", this.getModule());
-		this.writeAndLog(printWriter, listener, "/acs =", this.getAcs());
+		this.writeAndLog(printWriter, listener, "/acs=", this.getAcs());
 		this.writeAndLog(printWriter, listener, "/noifrcheck=", String.valueOf(this.getNoIfr()));
 		this.writeAndLog(printWriter, listener, "/nostatic=", String.valueOf(this.getNoStatic()));
 		this.writeAndLog(printWriter, listener, "/verbose=", String.valueOf(this.getVerbose()));
@@ -259,6 +263,41 @@ public class IntrootBuilder extends Builder {
 		listener.getLogger().println(builder.toString());
 	}
 	
+	public boolean hasErrors(AbstractBuild build) throws IOException {
+		String workspace =  (String) build.getEnvVars().get("WORKSPACE");
+		String module = new File(workspace, this.getModule()).getCanonicalPath();
+		File buildLog = new File(module, "build.log");
+		File buildlinuxLog = new File(module, "buildLinux.log");
+		
+		if(buildlinuxLog.exists()) {
+			return this.hasErrorsLog(buildLog) || this.hasErrorsLog(buildlinuxLog);
+		} else {
+			return this.hasErrorsLog(buildLog);
+		}
+	}
+	
+	public boolean hasErrorsLog(File logFile) throws IOException {
+		if(!logFile.exists()) 
+			return true;
+		
+		InputStream is = new FileInputStream(logFile); 
+        InputStreamReader sr = new InputStreamReader(is);
+        BufferedReader br = new BufferedReader(sr);
+        
+        for(String line = br.readLine(); br.readLine() != null; line = br.readLine()) {
+        	for(String regex: RuntimeConfiguration.BUILD_ERRORS_REGEX) {
+        		boolean match;
+        		if(match = line.matches(regex)) {
+        			br.close();
+            		return match;
+            	}
+        	}
+        }
+
+        br.close();
+		return false;
+	}
+	
 	@Override
 	public boolean perform(AbstractBuild build, Launcher launcher, BuildListener listener) throws IOException, InterruptedException {
 		PrintStream logger = listener.getLogger();
@@ -285,8 +324,7 @@ public class IntrootBuilder extends Builder {
 					.launch()
 					.envs(build.getEnvVars())
 					.pwd(workspace)
-					.cmds(command.toString())
-					.masks(true)
+					.cmdAsSingleString(command.toString())
 					.stdout(logger)
 					.stderr(logger);
 			process.join();
@@ -294,7 +332,8 @@ public class IntrootBuilder extends Builder {
 			e.printStackTrace();
 			return false;
 		}	
-		return true;
+		
+		return !this.hasErrors(build);
 	}
 
 	public boolean hasIntlist() {

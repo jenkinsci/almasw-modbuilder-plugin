@@ -87,6 +87,7 @@ INTLIST_$velocityCount=$introot
 
 export INTLIST=#foreach( $introot in $builder.getCachedIntlist() )$INTLIST_$velocityCount#end
 #end
+
 getTemplateForDirectory INTROOT ${INTROOT} > /dev/null 2>&1
 
 find ${_alma_module}/ -name 'build.log' | xargs rm -f || true
@@ -102,24 +103,6 @@ cp ${_alma_module}/build.log ${_alma_build_tag}/
 
 rm -f ${_alma_latest} && ln -f -s ${_alma_build_tag} ${_alma_latest}
 
-# check errors
-
-if [ -e ${_alma_module}/build.log ]; then
-    FAILED=`grep "==> FAILED" ${_alma_module}/build.log`
-    if [ -z "$FAILED" ]; then
-        exit 0
-    else
-        exit -1
-    fi
-fi
-
-if [ -e  ${_alma_module}/buildLinux.log ]; then
-    FAILED=`grep "==> FAILED" ${_alma_module}/buildLinux.log`
-    if [ -z "$FAILED" ]; then
-        exit 0
-    else
-        exit -1
-    fi
-fi
+ls ${_alma_latest}
 
 #eof
