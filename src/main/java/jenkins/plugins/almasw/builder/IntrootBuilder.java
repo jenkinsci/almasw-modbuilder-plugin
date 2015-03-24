@@ -271,7 +271,7 @@ public class IntrootBuilder extends Builder {
 		command.append("sh ");
 		
 		if(this.getDry()) {
-			command.append("-n ");
+			command.append("-n -v ");
 		}
 		
 		if(this.getTrace()) {
@@ -285,7 +285,8 @@ public class IntrootBuilder extends Builder {
 					.launch()
 					.envs(build.getEnvVars())
 					.pwd(workspace)
-					.cmdAsSingleString(command.toString())
+					.cmds(command.toString())
+					.masks(true)
 					.stdout(logger)
 					.stderr(logger);
 			process.join();
