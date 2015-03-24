@@ -1,6 +1,5 @@
 package jenkins.plugins.almasw.builder;
 
-import static hudson.util.jna.GNUCLibrary.LIBC;
 import hudson.Extension;
 import hudson.FilePath;
 import hudson.Launcher;
@@ -16,12 +15,10 @@ import hudson.util.ListBoxModel;
 
 import java.io.File;
 import java.io.FileFilter;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashSet;
@@ -32,7 +29,6 @@ import javax.servlet.ServletException;
 
 import jenkins.model.Jenkins;
 import jenkins.plugins.almasw.builder.deps.IntrootDep;
-import jenkins.plugins.almasw.builder.deps.IntrootDepResId;
 import net.sf.json.JSONObject;
 
 import org.apache.velocity.Template;
@@ -61,6 +57,7 @@ public class IntrootBuilder extends Builder {
 	public final boolean ccache;
 	public final String introot;
 	public final boolean dry;
+	public final boolean trace;
 	public Date date;
 	
 	private transient ArrayList<String> intlist;
@@ -69,7 +66,7 @@ public class IntrootBuilder extends Builder {
 	@DataBoundConstructor
 	public IntrootBuilder(String acs, String module, boolean verbose,
 			boolean pars, int jobs, int limit, boolean noStatic, boolean noIfr,
-			List<IntrootDep> dependencies, boolean ccache, String introot, boolean dry) {
+			List<IntrootDep> dependencies, boolean ccache, String introot, boolean dry, boolean trace) {
 
 		this.cores = Runtime.getRuntime().availableProcessors();
 		
@@ -85,6 +82,7 @@ public class IntrootBuilder extends Builder {
 		this.ccache = ccache;
 		this.introot = introot;
 		this.dry = dry;
+		this.trace = trace;
 	}
 	
 	public String getCachedMakePars() {
@@ -270,10 +268,14 @@ public class IntrootBuilder extends Builder {
 		File script = this.generateScript(build, launcher, listener);
 		
 		StringBuilder command =  new StringBuilder();
-		command.append("sh -x ");
+		command.append("sh ");
 		
-		if(this.dry) {
+		if(this.getDry()) {
 			command.append("-n ");
+		}
+		
+		if(this.getTrace()) {
+			command.append("-x ");
 		}
 		
 		command.append(script.getName());
@@ -361,6 +363,11 @@ public class IntrootBuilder extends Builder {
 	@Exported
 	public boolean getDry() {
 		return dry;
+	}
+	
+	@Exported
+	public boolean getTrace() {
+		return trace;
 	}
 
 	@Override

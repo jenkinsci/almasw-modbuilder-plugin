@@ -89,6 +89,9 @@ export INTLIST=#foreach( $introot in $builder.getCachedIntlist() )$INTLIST_$velo
 #end
 getTemplateForDirectory INTROOT ${INTROOT} > /dev/null 2>&1
 
+find ${_alma_module}/ -name 'build.log'|xargs rm -f || true
+find ${_alma_module}/ -name 'buildLinux.log'|xargs rm -f || true
+
 make build -C ${_alma_module}
 
 # post tasks
@@ -98,5 +101,25 @@ cp ${_alma_nfo} ${_alma_build_tag}/
 cp ${_alma_module}/build.log ${_alma_build_tag}/
 
 ln -sf ${_alma_build_tag} ${_alma_latest}
+
+# check errors
+
+if [ -e ${_alma_module}/build.log ]; then
+    FAILED=`grep "==> FAILED" build.log`
+    if [ -z "$FAILED" ]; then
+        exit 0
+    else
+        exit -1
+    fi
+fi
+
+if [ -e  ${_alma_module}/buildLinux.log ]; then
+    FAILED=`grep "==> FAILED" buildLinux.log`
+    if [ -z "$FAILED" ]; then
+        exit 0
+    else
+        exit -1
+    fi
+fi
 
 #eof
