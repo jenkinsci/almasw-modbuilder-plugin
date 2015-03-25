@@ -41,7 +41,7 @@ source ${_acs_profile}
 # make file definitions
 
 #if( $builder.getPars() )
-export MAKE_PARS="$builder.getCachedMakePars()"
+export MAKE_PARS="$builder.getMakePars()"
 
 #end
 #if( $builder.getVerbose() )
