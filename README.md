@@ -4,7 +4,18 @@
 
 An ACS/ALMASW module builder for Jenkins.
 
-This plugin aims to build ALMASW modules, but can be used to build ACS software modules as well, feel free to use in ACS based projects as well.
+This plugin aims to build ALMASW modules, but can be used to build ACS software modules as well, feel free to use in any ACS based projects as well.
+
+The plugin support:
+   * build an ACS based module effortless
+   * Choose the ACS version to use
+   * Enable [CCACHE](https://ccache.samba.org/) (within workspace)
+   * Makefile parallel jobs
+   * No static
+   * No IFR check
+   * Add other projects/jobs as dependencies located at job id, artifact or workspace level.
+
+Thanks to everyone who helped in the development of the several bash scripts, work who was the base of the development for this plugin.
 
 JDKs supported:
    * oraclejdk8
