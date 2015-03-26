@@ -6,42 +6,47 @@
 # generated variables
 
 _build_number="${BUILD_NUMBER}"
+
 _build_id="${BUILD_ID}"
+
 _build_url="${BUILD_URL}"
+
 _build_name="${JOB_NAME}"
+
 _build_tag="${JOB_NAME}-${BUILD_NUMBER}"
+
 _build_workspace="${WORKSPACE}"
 
 _acs_path="$builder.acs"
+
 _acs_profile="${_acs_path}/ACSSW/config/.acs/.bash_profile.acs"
 
 _alma_build_tag="ALMASW-${_build_tag}"
+
 _alma_acssw="${_alma_build_tag}/ACSSW"
+
 _alma_acsdata="${_alma_build_tag}/acsdata"
+
 _alma_latest="ALMASW-${_build_name}"
 
 _alma_module="$builder.getModule()"
 
 _alma_nfo="${_alma_module}_${_build_number}.nfo"
 
-# introot and dir stuff
+# build setup
 
 mkdir -p ${_alma_build_tag}
 
 mkdir -p ${_alma_acsdata}/tmp
 
+mkdir -p ${_alma_acsdata}/config
+
 mkdir -p ${_alma_acsdata}/tomcat5/webapp
 
 export INTROOT="${_build_workspace}/${_alma_acssw}"
 
-# load profile
-
-source ${_acs_profile}
-
-# make file definitions
-
 #if( $builder.getPars() )
-export MAKE_PARS="$builder.getMakePars()"
+export MAKE_PARS="$builder.getiCachedMakePars()"
 
 #end
 #if( $builder.getVerbose() )
@@ -49,7 +54,7 @@ export MAKE_VERBOSE="yes"
 
 #end
 #if( $builder.getNoIfr() )
-export MAKE_NOIFR_CHECK="yes"
+export MAKE_NOIFR_CHECK="on"
 
 #end
 #if( $builder.getNoStatic() ) 
@@ -59,7 +64,6 @@ export _NO_STATIC="yes"
 
 #end
 #if( $builder.getCcache() )
-# ccache enabled
 
 export CCACHE_ROOT="$builder.getDescriptor().getCcacheInstall()"
 
@@ -68,7 +72,6 @@ export PATH=$CCACHE_ROOT/bin:$PATH
 export CCACHE_DIR="${WORKSPACE}/.ccache"
 
 #end
-# almasw definitions
 
 export ACSDATA="${_alma_acsdata}"
 
@@ -79,30 +82,41 @@ export LINUX_HOME="${_acs_path}/rtlinux"
 # lifecycle
 
 #if( $builder.hasIntlist() )
-# intlist configuration
 
 #foreach( $introot in $builder.getCachedIntlist() )
 INTLIST_$velocityCount=$introot
 #end
 
-export INTLIST=#foreach( $introot in $builder.getCachedIntlist() )$INTLIST_$velocityCount#end
+export INTLIST=#foreach( $introot in $builder.getCachedIntlist() )${INTLIST}_$velocityCount:#end
+
 #end
+
+# life cycle
+
+find ${_alma_module}/ -name 'build.log' | xargs rm -f || true
+
+find ${_alma_module}/ -name 'buildLinux.log' | xargs rm -f || true
+
+source ${_acs_profile}
 
 getTemplateForDirectory INTROOT ${INTROOT} > /dev/null 2>&1
 
-find ${_alma_module}/ -name 'build.log' | xargs rm -f || true
-find ${_alma_module}/ -name 'buildLinux.log' | xargs rm -f || true
+rm -f ${_alma_latest} && ln -f -s ${_alma_build_tag} ${_alma_latest}
 
-make build -C ${_alma_module}
+ln -s ${_alma_module}/build.log ${_alma_build_tag}/
 
-# post tasks
+#if( $builder.getCcache() )
+ccache -s
+
+#end
+make build -C ${_alma_module} 2>&1
+
+rm ${_alma_build_tag}/*.log
 
 cp ${_alma_nfo} ${_alma_build_tag}/
 
-cp ${_alma_module}/build.log ${_alma_build_tag}/
+cp ${_alma_module}/*.log ${_alma_build_tag}/
 
-rm -f ${_alma_latest} && ln -f -s ${_alma_build_tag} ${_alma_latest}
-
-ls ${_alma_latest}
+echo "${_alma_latest} -> $(readlink ${_alma_latest})"
 
 #eof

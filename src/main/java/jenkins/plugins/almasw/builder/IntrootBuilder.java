@@ -99,7 +99,7 @@ public class IntrootBuilder extends Builder {
 		
 		StringBuilder makePars = new StringBuilder();
 		
-		if(this.pars && this.cores > 1) {
+		if(this.cores > 1) {
 			makePars.append("-j");
 			
 			if(this.jobs < 0) {
@@ -110,7 +110,7 @@ public class IntrootBuilder extends Builder {
 				makePars.append(this.jobs);
 			}
 			
-			if( this.limit != 0 ) {
+			if(this.limit != 0 ) {
 				makePars.append(" -l");
 				if(this.limit < 0) {
 					makePars.append(this.cores - 1);

@@ -13,6 +13,7 @@ import hudson.Extension;
 import hudson.model.AbstractDescribableImpl;
 import hudson.model.AutoCompletionCandidates;
 import hudson.model.Descriptor;
+import hudson.model.Project;
 import hudson.util.ListBoxModel;
 
 import org.kohsuke.stapler.DataBoundConstructor;
@@ -150,8 +151,8 @@ public class IntrootDep extends AbstractDescribableImpl<IntrootDep> implements S
 		
 		public AutoCompletionCandidates doAutoCompleteProject(@QueryParameter String value) {
 			AutoCompletionCandidates projects = new AutoCompletionCandidates();
-			for (String job : Jenkins.getInstance().getJobNames())
-				projects.add(job);
+			for (Project project : Jenkins.getInstance().getAllItems(Project.class))
+				projects.add(project.getName());
 			return projects;
 		}
 		
