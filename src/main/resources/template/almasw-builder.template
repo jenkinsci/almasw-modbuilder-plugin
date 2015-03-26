@@ -46,7 +46,7 @@ mkdir -p ${_alma_acsdata}/tomcat5/webapp
 export INTROOT="${_build_workspace}/${_alma_acssw}"
 
 #if( $builder.getPars() )
-export MAKE_PARS="$builder.getiCachedMakePars()"
+export MAKE_PARS="$builder.getCachedMakePars()"
 
 #end
 #if( $builder.getVerbose() )
@@ -64,7 +64,6 @@ export _NO_STATIC="yes"
 
 #end
 #if( $builder.getCcache() )
-
 export CCACHE_ROOT="$builder.getDescriptor().getCcacheInstall()"
 
 export PATH=$CCACHE_ROOT/bin:$PATH
@@ -72,7 +71,6 @@ export PATH=$CCACHE_ROOT/bin:$PATH
 export CCACHE_DIR="${WORKSPACE}/.ccache"
 
 #end
-
 export ACSDATA="${_alma_acsdata}"
 
 export RTAI_HOME="${_acs_path}/rtai"
@@ -86,11 +84,11 @@ export LINUX_HOME="${_acs_path}/rtlinux"
 #foreach( $introot in $builder.getCachedIntlist() )
 INTLIST_$velocityCount=$introot
 
-echo "${INTLIST_$velocityCount} -> $(readlink ${introot})"
+echo "$INTLIST_$velocityCount -> $(readlink ${introot}/../../../)"
 
 #end
 
-export INTLIST=#foreach( $introot in $builder.getCachedIntlist() )${INTLIST}_$velocityCount:#end
+export INTLIST=#foreach( $introot in $builder.getCachedIntlist() )$INTLIST_$velocityCount:#end
 
 #end
 
