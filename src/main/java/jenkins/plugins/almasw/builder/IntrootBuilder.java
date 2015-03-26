@@ -246,45 +246,45 @@ public class IntrootBuilder extends Builder {
 		File nfoFile = new File(workspace, nfo);
 		PrintWriter printWriter = new PrintWriter(nfoFile);
 
-		this.writeAndLog(printWriter, listener, "/start");
+		this.log(listener, "/start");
 		
-		this.writeAndLog(printWriter, listener, "/id=", String.valueOf(build.getNumber()));
-		this.writeAndLog(printWriter, listener, "/cores=", String.valueOf(this.getCores()));
-		this.writeAndLog(printWriter, listener, "/module=", this.getModule());
-		this.writeAndLog(printWriter, listener, "/acs=", this.getAcs());
-		this.writeAndLog(printWriter, listener, "/noifrcheck=", String.valueOf(this.getNoIfr()));
-		this.writeAndLog(printWriter, listener, "/nostatic=", String.valueOf(this.getNoStatic()));
-		this.writeAndLog(printWriter, listener, "/verbose=", String.valueOf(this.getVerbose()));
-		this.writeAndLog(printWriter, listener, "/dry=", String.valueOf(this.getDry()));
-		this.writeAndLog(printWriter, listener, "/ccache=", String.valueOf(this.getCcache()));
+		this.log(listener, "/id=", String.valueOf(build.getNumber()));
+		this.log(listener, "/cores=", String.valueOf(this.getCores()));
+		this.log(listener, "/module=", this.getModule());
+		this.log(listener, "/acs=", this.getAcs());
+		this.log(listener, "/noifrcheck=", String.valueOf(this.getNoIfr()));
+		this.log(listener, "/nostatic=", String.valueOf(this.getNoStatic()));
+		this.log(listener, "/verbose=", String.valueOf(this.getVerbose()));
+		this.log(listener, "/dry=", String.valueOf(this.getDry()));
+		this.log(listener, "/ccache=", String.valueOf(this.getCcache()));
 		
 		if(this.getPars()) {
-			this.writeAndLog(printWriter, listener, "/makejobs=", String.valueOf(this.getMakePars()));	
+			this.log(listener, "/makejobs=", String.valueOf(this.getMakePars()));	
 		}
 
 		if(this.getDependencies() != null && this.getDependencies().size() > 0) {
-			this.writeAndLog(printWriter, listener, "/intlist=start");
+			this.log(listener, "/intlist=start");
 			
 			for(IntrootDep introot: this.getDependencies()) {
-				this.writeAndLog(printWriter, listener, "/intlist/introot=start");	
-				this.writeAndLog(printWriter, listener, "/intlist/introot/project=" + introot.getProject());
-				this.writeAndLog(printWriter, listener, "/intlist/introot/path=", introot.getIntroot());
+				this.log(listener, "/intlist/introot=start");	
+				this.log(listener, "/intlist/introot/project=" + introot.getProject());
+				this.log(listener, "/intlist/introot/path=", introot.getIntroot());
 				if(introot.getIsArtifact()) {
 					String id = introot.getResult().getJenkinsId();
 					String artifactPath = introot.getBuildRootId(id).toString();
 					String artifactRealPath = artifactPath.replace("$JENKINS_HOME", build.getEnvVars().get("JENKINS_HOME").toString());
 					FilePath symlink = new FilePath(new File(artifactRealPath));
-					this.writeAndLog(printWriter, listener, "/intlist/introot/artifact/source=", introot.getResult().getJenkinsId());
-					this.writeAndLog(printWriter, listener, "/intlist/introot/artifact/path=", symlink.readLink(), File.separator, introot.getACSSW());
+					this.log(listener, "/intlist/introot/artifact/source=", introot.getResult().getJenkinsId());
+					this.log(listener, "/intlist/introot/artifact/path=", symlink.readLink(), File.separator, introot.getACSSW());
 				} else {
-					this.writeAndLog(printWriter, listener, "/intlist/introot/workspace=", introot.getACSSW());
+					this.log(listener, "/intlist/introot/workspace=", introot.getACSSW());
 				}
-				this.writeAndLog(printWriter, listener, "/intlist/introot=end");
+				this.log(listener, "/intlist/introot=end");
 			}
-			this.writeAndLog(printWriter, listener, "/intlist=end");
+			this.log(listener, "/intlist=end");
 		}
 		
-		this.writeAndLog(printWriter, listener, "/end");
+		this.log(listener, "/end");
 		printWriter.close();
 	}
 	
@@ -300,29 +300,6 @@ public class IntrootBuilder extends Builder {
 		introotPath.append(File.separator);
 		introotPath.append(introot.getProject());
 		introotPath.append(introot.getResult().getJenkinsId());
-	}
-	
-	/**
-	 * 
-	 * @param printWriter
-	 * @param listener
-	 * @param words
-	 */
-	public void writeAndLog(PrintWriter printWriter, BuildListener listener, String ... words) {
-		this.log(listener, words);
-		this.write(printWriter, words);
-	}
-	
-	/**
-	 * 
-	 * @param printWriter
-	 * @param words
-	 */
-	public void write(PrintWriter printWriter, String ... words) {
-		StringBuilder builder = new StringBuilder(RuntimeConfiguration.LOGGER_PREFIX);
-		for(String word: words)
-			builder.append(word);
-		printWriter.println(builder.toString());
 	}
 	
 	/**
@@ -343,7 +320,7 @@ public class IntrootBuilder extends Builder {
 	 * @return
 	 * @throws IOException
 	 */
-	public boolean hasErrors(AbstractBuild build) throws IOException {
+	public boolean hasErrors(AbstractBuild build, BuildListener listener) throws IOException {
 		String workspace =  (String) build.getEnvVars().get("WORKSPACE");
 		String module = new File(workspace, this.getModule()).getCanonicalPath();
 		
@@ -351,12 +328,18 @@ public class IntrootBuilder extends Builder {
 		File buildlinuxLog = new File(module, "buildLinux.log");
 		
 		if(buildLog.exists()) {
-			return this.hasErrorsLog(buildLog);
+			return this.hasErrorsLog(buildLog, listener);
+		} else {
+		    this.log(listener, " ", "no build.log file to check");
 		}
 		
 		if(buildlinuxLog.exists()) {
-			return this.hasErrorsLog(buildLog) || this.hasErrorsLog(buildlinuxLog);
+			return this.hasErrorsLog(buildlinuxLog, listener);
+		} else {
+		    this.log(listener, " ", "no buildLinux.log file to check");
 		}
+		
+		this.log(listener, " ", "lo build logs files to check, no errors found, this might be not true due ACS makefile return always 0");
 		
 		return false;
 	}
@@ -367,9 +350,9 @@ public class IntrootBuilder extends Builder {
 	 * @return
 	 * @throws IOException
 	 */
-	public boolean hasErrorsLog(File logFile) throws IOException {
-		if(!logFile.exists()) 
-			return true;
+	public boolean hasErrorsLog(File logFile, BuildListener listener) throws IOException {
+	    
+	    this.log(listener, " ", "checking ", logFile.getName(), " for errors");
 		
 		InputStream is = new FileInputStream(logFile); 
         InputStreamReader sr = new InputStreamReader(is);
@@ -379,6 +362,7 @@ public class IntrootBuilder extends Builder {
         	for(String regex: RuntimeConfiguration.BUILD_ERRORS_REGEX) {
         		boolean match;
         		if(match = line.matches(regex)) {
+        		    this.log(listener, " ", logFile.getName(), " error found: ", regex);
         			br.close();
             		return match;
             	}
@@ -424,7 +408,13 @@ public class IntrootBuilder extends Builder {
 			return false;
 		}	
 		
-		return this.getDry() ? this.getDry() : !this.hasErrors(build);
+		boolean result =  !this.hasErrors(build, listener);
+		
+		if(!result) {
+		    this.log(listener, " build has erros, check the logs");
+		}
+		
+		return this.getDry() ? this.getDry() : result;
 	}
 
 	public boolean hasIntlist() {
