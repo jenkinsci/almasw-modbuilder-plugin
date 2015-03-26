@@ -45,6 +45,11 @@ import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.export.Exported;
 
+/**
+ * 
+ * @author atejeda
+ *
+ */
 public class IntrootBuilder extends Builder {
 		
 	public transient final int cores;
@@ -53,8 +58,8 @@ public class IntrootBuilder extends Builder {
 	public final String module;
 	public final boolean verbose;
 	public final boolean pars;
-	public final int jobs;
-	public final int limit;
+	public final String jobs;
+	public final String limit;
 	public final boolean noStatic;
 	public final boolean noIfr;
 	public final List<IntrootDep> dependencies;
@@ -67,9 +72,25 @@ public class IntrootBuilder extends Builder {
 	private transient ArrayList<String> intlist;
 	private transient String makePars;
 	
+	/**
+	 * 
+	 * @param acs
+	 * @param module
+	 * @param verbose
+	 * @param pars
+	 * @param jobs
+	 * @param limit
+	 * @param noStatic
+	 * @param noIfr
+	 * @param dependencies
+	 * @param ccache
+	 * @param introot
+	 * @param dry
+	 * @param trace
+	 */
 	@DataBoundConstructor
 	public IntrootBuilder(String acs, String module, boolean verbose,
-			boolean pars, int jobs, int limit, boolean noStatic, boolean noIfr,
+			boolean pars, String jobs, String limit, boolean noStatic, boolean noIfr,
 			List<IntrootDep> dependencies, boolean ccache, String introot, boolean dry, boolean trace) {
 
 		this.cores = Runtime.getRuntime().availableProcessors();
@@ -89,30 +110,39 @@ public class IntrootBuilder extends Builder {
 		this.trace = trace;
 	}
 	
+	/**
+	 * 
+	 * @return
+	 */
 	public String getCachedMakePars() {
 		if(this.makePars == null)
 			this.makePars = this.getMakePars();
-		return this.makePars;
+		return this.getMakePars();
 	}
 	
+	/**
+	 * 
+	 * @return
+	 */
 	public String getMakePars() {
 		
 		StringBuilder makePars = new StringBuilder();
 		
-		if(this.cores > 1) {
+		if(this.getCores() > 1) {
+			
 			makePars.append("-j");
 			
-			if(this.jobs < 0) {
-				makePars.append(this.cores - 1);
-			} else if(this.jobs == 0){
+			if(this.getJobs() == null || this.getJobs().isEmpty() || Integer.valueOf(this.jobs) < 0) {
+				makePars.append(this.getCores() - 1);
+			} else if(Integer.valueOf(this.getJobs()) == 0){
 				makePars.append(1);
 			} else {
-				makePars.append(this.jobs);
+				makePars.append(this.getJobs());
 			}
 			
-			if(this.limit != 0 ) {
+			if(this.getLimit() != null && !this.getLimit().isEmpty() && Integer.valueOf(this.getLimit()) != 0 ) {
 				makePars.append(" -l");
-				if(this.limit < 0) {
+				if(Integer.valueOf(this.limit) < 0) {
 					makePars.append(this.cores - 1);
 				} else {
 					makePars.append(this.limit);
@@ -123,6 +153,10 @@ public class IntrootBuilder extends Builder {
 		return makePars.toString();
 	}
 	
+	/**
+	 * 
+	 * @return
+	 */
 	public ArrayList<String> getCachedIntlist() {
 		
 		if(this.intlist == null)
@@ -134,6 +168,10 @@ public class IntrootBuilder extends Builder {
 	// api: not used due builds, nor other stuff can be not still exists
 	// at execution time?, instead using the jenkins hardcoded path..?
 	// for the moment, 
+	/**
+	 * 
+	 * @return
+	 */
 	public ArrayList<String> getIntlist() {
 		
 		ArrayList<String> intlist = new ArrayList<String>();
@@ -150,6 +188,14 @@ public class IntrootBuilder extends Builder {
 		return intlist;
 	}
 	
+	/**
+	 * 
+	 * @param build
+	 * @param launcher
+	 * @param listener
+	 * @return
+	 * @throws IOException
+	 */
 	public File generateScript(AbstractBuild build, Launcher launcher, BuildListener listener) throws IOException {		
 		VelocityEngine velocity = new VelocityEngine();
 
@@ -185,6 +231,13 @@ public class IntrootBuilder extends Builder {
 		return scriptFile;	
 	}
 	
+	/**
+	 * 
+	 * @param build
+	 * @param listener
+	 * @throws IOException
+	 * @throws InterruptedException
+	 */
 	public void generateInfo(AbstractBuild build, BuildListener listener) throws IOException, InterruptedException {
 		
 		String nfo = this.module + "_" + build.getNumber() + ".nfo";
@@ -196,6 +249,7 @@ public class IntrootBuilder extends Builder {
 		this.writeAndLog(printWriter, listener, "/start");
 		
 		this.writeAndLog(printWriter, listener, "/id=", String.valueOf(build.getNumber()));
+		this.writeAndLog(printWriter, listener, "/cores=", String.valueOf(this.getCores()));
 		this.writeAndLog(printWriter, listener, "/module=", this.getModule());
 		this.writeAndLog(printWriter, listener, "/acs=", this.getAcs());
 		this.writeAndLog(printWriter, listener, "/noifrcheck=", String.valueOf(this.getNoIfr()));
@@ -217,7 +271,7 @@ public class IntrootBuilder extends Builder {
 				this.writeAndLog(printWriter, listener, "/intlist/introot/path=", introot.getIntroot());
 				if(introot.getIsArtifact()) {
 					String id = introot.getResult().getJenkinsId();
-					String artifactPath = introot.getProjectRootArtifact(id).toString();
+					String artifactPath = introot.getBuildRootId(id).toString();
 					String artifactRealPath = artifactPath.replace("$JENKINS_HOME", build.getEnvVars().get("JENKINS_HOME").toString());
 					FilePath symlink = new FilePath(new File(artifactRealPath));
 					this.writeAndLog(printWriter, listener, "/intlist/introot/artifact/source=", introot.getResult().getJenkinsId());
@@ -234,6 +288,10 @@ public class IntrootBuilder extends Builder {
 		printWriter.close();
 	}
 	
+	/**
+	 * 
+	 * @param introot
+	 */
 	public void getCanonicalArtifact(IntrootDep introot) {
 		StringBuilder introotPath = new StringBuilder();
 		introotPath.append("$JENKINS_HOME");
@@ -244,11 +302,22 @@ public class IntrootBuilder extends Builder {
 		introotPath.append(introot.getResult().getJenkinsId());
 	}
 	
+	/**
+	 * 
+	 * @param printWriter
+	 * @param listener
+	 * @param words
+	 */
 	public void writeAndLog(PrintWriter printWriter, BuildListener listener, String ... words) {
 		this.log(listener, words);
 		this.write(printWriter, words);
 	}
 	
+	/**
+	 * 
+	 * @param printWriter
+	 * @param words
+	 */
 	public void write(PrintWriter printWriter, String ... words) {
 		StringBuilder builder = new StringBuilder(RuntimeConfiguration.LOGGER_PREFIX);
 		for(String word: words)
@@ -256,6 +325,11 @@ public class IntrootBuilder extends Builder {
 		printWriter.println(builder.toString());
 	}
 	
+	/**
+	 * 
+	 * @param listener
+	 * @param words
+	 */
 	public void log(BuildListener listener, String ... words) {
 		StringBuilder builder = new StringBuilder(RuntimeConfiguration.LOGGER_PREFIX);
 		for(String word: words)
@@ -263,19 +337,36 @@ public class IntrootBuilder extends Builder {
 		listener.getLogger().println(builder.toString());
 	}
 	
+	/**
+	 * 
+	 * @param build
+	 * @return
+	 * @throws IOException
+	 */
 	public boolean hasErrors(AbstractBuild build) throws IOException {
 		String workspace =  (String) build.getEnvVars().get("WORKSPACE");
 		String module = new File(workspace, this.getModule()).getCanonicalPath();
+		
 		File buildLog = new File(module, "build.log");
 		File buildlinuxLog = new File(module, "buildLinux.log");
 		
-		if(buildlinuxLog.exists()) {
-			return this.hasErrorsLog(buildLog) || this.hasErrorsLog(buildlinuxLog);
-		} else {
+		if(buildLog.exists()) {
 			return this.hasErrorsLog(buildLog);
 		}
+		
+		if(buildlinuxLog.exists()) {
+			return this.hasErrorsLog(buildLog) || this.hasErrorsLog(buildlinuxLog);
+		}
+		
+		return false;
 	}
 	
+	/**
+	 * 
+	 * @param logFile
+	 * @return
+	 * @throws IOException
+	 */
 	public boolean hasErrorsLog(File logFile) throws IOException {
 		if(!logFile.exists()) 
 			return true;
@@ -310,7 +401,7 @@ public class IntrootBuilder extends Builder {
 		command.append("sh ");
 		
 		if(this.getDry()) {
-			command.append("-n -v ");
+			command.append("-n ");
 		}
 		
 		if(this.getTrace()) {
@@ -333,7 +424,7 @@ public class IntrootBuilder extends Builder {
 			return false;
 		}	
 		
-		return !this.hasErrors(build);
+		return this.getDry() ? this.getDry() : !this.hasErrors(build);
 	}
 
 	public boolean hasIntlist() {
@@ -366,12 +457,12 @@ public class IntrootBuilder extends Builder {
 	}
 
 	@Exported
-	public int getJobs() {
+	public String getJobs() {
 		return jobs;
 	}
 
 	@Exported
-	public int getLimit() {
+	public String getLimit() {
 		return limit;
 	}
 
@@ -415,6 +506,11 @@ public class IntrootBuilder extends Builder {
 		return (IntrootBuilderDescriptor) super.getDescriptor();
 	}
 	
+	/**
+	 * 
+	 * @author atejeda
+	 *
+	 */
 	@Extension
 	public static final class IntrootBuilderDescriptor extends BuildStepDescriptor<Builder> {
 
@@ -441,6 +537,13 @@ public class IntrootBuilder extends Builder {
 			return super.configure(req, formData);
 		}
 
+		/**
+		 * 
+		 * @param value
+		 * @return
+		 * @throws IOException
+		 * @throws ServletException
+		 */
 		public FormValidation doCheckName(@QueryParameter String value) throws IOException, ServletException {
 			if (value.length() == 0)
 				return FormValidation.error("Please set a name");
@@ -449,6 +552,10 @@ public class IntrootBuilder extends Builder {
 			return FormValidation.ok();
 		}
 		
+		/**
+		 * 
+		 * @return
+		 */
 		public ListBoxModel doFillAcsItems() {
 			
 			String basePath = (this.acsInstall != null && !this.acsInstall.isEmpty()) ? this.acsInstall : "/alma"; 

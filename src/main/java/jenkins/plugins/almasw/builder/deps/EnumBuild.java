@@ -1,7 +1,6 @@
 package jenkins.plugins.almasw.builder.deps;
 
-public enum EnumBuild {
-	
+public enum EnumBuild {	
 	lastBuild,
 	lastSuccessfulBuild,
 	lastCompletedBuild,

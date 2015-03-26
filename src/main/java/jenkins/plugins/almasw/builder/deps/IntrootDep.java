@@ -21,6 +21,11 @@ import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.export.Exported;
 import org.kohsuke.stapler.jelly.ThisTagLibrary;
 
+/**
+ * 
+ * @author atejeda
+ *
+ */
 public class IntrootDep extends AbstractDescribableImpl<IntrootDep> implements Serializable {
 
 	public final String project;
@@ -28,6 +33,14 @@ public class IntrootDep extends AbstractDescribableImpl<IntrootDep> implements S
 	public final String location;
 	public final IntrootDepRes result;
 
+	/**
+	 * 
+	 * @param project
+	 * @param isArtifact
+	 * @param location
+	 * @param introot
+	 * @param result
+	 */
 	@DataBoundConstructor
 	public IntrootDep(String project, boolean isArtifact, String location, String introot, IntrootDepRes result) {
 		
@@ -52,6 +65,10 @@ public class IntrootDep extends AbstractDescribableImpl<IntrootDep> implements S
 		return location;
 	}
 	
+	/**
+	 * 
+	 * @return
+	 */
 	public String getIntroot() {
 		StringBuilder introot = new StringBuilder();
 		
@@ -70,6 +87,10 @@ public class IntrootDep extends AbstractDescribableImpl<IntrootDep> implements S
 		return introot.toString();
 	}
 	
+	/**
+	 * 
+	 * @return
+	 */
 	public String getACSSW() {
 		if(this.getLocation() == null || this.getLocation().isEmpty()) {
 			return "ALMASW-" + this.getProject() + File.separator + "ACSSW";
@@ -78,6 +99,10 @@ public class IntrootDep extends AbstractDescribableImpl<IntrootDep> implements S
 		}
 	}
 	
+	/**
+	 * 
+	 * @return
+	 */
 	public StringBuilder getProjectWorkspace() {
 		StringBuilder builder = new StringBuilder();
 		builder.append(this.getProjectRoot());
@@ -86,10 +111,20 @@ public class IntrootDep extends AbstractDescribableImpl<IntrootDep> implements S
 		return builder;
 	}
 	
+	/**
+	 * 
+	 * @param id
+	 * @return
+	 */
 	public StringBuilder getProjectRootArtifact(int id) {
 		return this.getProjectRootArtifact(String.valueOf(id));
 	}
-		
+	
+	/**
+	 * 
+	 * @param type
+	 * @return
+	 */
 	public StringBuilder getProjectRootArtifact(String type) {
 		StringBuilder builder = new StringBuilder();
 		builder.append(this.getBuildRootId(type));
@@ -98,10 +133,20 @@ public class IntrootDep extends AbstractDescribableImpl<IntrootDep> implements S
 		return builder;
 	}
 	
+	/**
+	 * 
+	 * @param id
+	 * @return
+	 */
 	public StringBuilder getBuildRootId(int id) {
 		return this.getBuildRootId(String.valueOf(id));
 	}
 	
+	/**
+	 * 
+	 * @param id
+	 * @return
+	 */
 	public StringBuilder getBuildRootId(String id) {
 		StringBuilder builder = new StringBuilder();
 		builder.append(this.getProjectRootBuild());
@@ -110,6 +155,10 @@ public class IntrootDep extends AbstractDescribableImpl<IntrootDep> implements S
 		return builder;
 	}
 	
+	/**
+	 * 
+	 * @return
+	 */
 	public StringBuilder getProjectRootBuild() {
 		StringBuilder builder = new StringBuilder();
 		builder.append(this.getProjectRoot());
@@ -118,6 +167,10 @@ public class IntrootDep extends AbstractDescribableImpl<IntrootDep> implements S
 		return builder;
 	}
 	
+	/**
+	 * 
+	 * @return
+	 */
 	public StringBuilder getProjectRoot() {
 		StringBuilder builder = new StringBuilder();
 		builder.append("$JENKINS_HOME");
@@ -128,10 +181,19 @@ public class IntrootDep extends AbstractDescribableImpl<IntrootDep> implements S
 		return builder;
 	}
 
+	/**
+	 * 
+	 * @return
+	 */
 	public IntrootDepRes getResult() {
 		return result;
 	}
 
+	/**
+	 * 
+	 * @author atejeda
+	 *
+	 */
 	@Extension
 	public static final class DescriptorImpl extends Descriptor<IntrootDep> {
 		
@@ -142,6 +204,10 @@ public class IntrootDep extends AbstractDescribableImpl<IntrootDep> implements S
 		
 		// validations
 		
+		/**
+		 * 
+		 * @return
+		 */
 		public ListBoxModel doFillStrategyItems() {
 			ListBoxModel items = new ListBoxModel();
 			for (EnumStrategy eStrategy : EnumStrategy.values())
@@ -149,6 +215,11 @@ public class IntrootDep extends AbstractDescribableImpl<IntrootDep> implements S
 			return items;
 		}
 		
+		/**
+		 * 
+		 * @param value
+		 * @return
+		 */
 		public AutoCompletionCandidates doAutoCompleteProject(@QueryParameter String value) {
 			AutoCompletionCandidates projects = new AutoCompletionCandidates();
 			for (Project project : Jenkins.getInstance().getAllItems(Project.class))
@@ -156,12 +227,20 @@ public class IntrootDep extends AbstractDescribableImpl<IntrootDep> implements S
 			return projects;
 		}
 		
+		/**
+		 * 
+		 * @return
+		 */
 		public IntrootDepRes.IntrootDepResDescriptor getDefaultResult() {
 			return Jenkins.getInstance().getDescriptorByType(IntrootDepResBuild.IntrootDepResBuildDescriptor.class);
 		}
 		
+		/**
+		 * 
+		 * @return
+		 */
 		public DescriptorExtensionList<IntrootDepRes, IntrootDepResDescriptor> getResults() {	
 			return IntrootDepRes.getDescriptors();
-		}
-	}
+        }
+    }
 }
