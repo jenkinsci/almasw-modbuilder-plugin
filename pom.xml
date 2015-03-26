@@ -16,8 +16,8 @@
   <url>https://wiki.jenkins-ci.org/display/JENKINS/almasw+modbuilder+Plugin</url>
   <licenses>
     <license>
-      <name>MIT License</name>
-      <url>http://opensource.org/licenses/MIT</url>
+      <name>GLPv3 License</name>
+      <url>https://www.gnu.org/copyleft/gpl.html</url>
     </license>
   </licenses>
   <developers>
