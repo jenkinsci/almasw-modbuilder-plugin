@@ -4,7 +4,7 @@
 
 An ACS/ALMASW module builder for Jenkins.
 
-This plugin aims to build ALMASW modules, but can be used to build ACS software modules as well, feel free to use in any ACS based projects as well.
+This plugin aims to build ALMASW modules, but can be used to build ACS software modules as well, feel free to use in any ACS based projects.
 
 The plugin support:
    * build an ACS based module effortless
